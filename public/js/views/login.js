@@ -8,6 +8,7 @@ export function renderLogin(root, onDone) {
       <div class="hero"><div class="logo">K+</div><h1>KRÉTA Plusz</h1><div class="muted">Jegyek, órarend, statisztikák, a saját neveiddel.</div></div>
       ${mode === "form" ? `
       <form id="f" class="grid" style="gap:12px" autocomplete="on">
+        <a href="#" id="alt" class="small btn primary login_via_kreta" style="text-align:center">Belépés a KRÉTA oldalán keresztül</a>
         <label class="f">Iskola OM-azonosítója<input class="input" name="inst" placeholder="pl. klik035123456" autocomplete="organization" required></label>
         <label class="f">Felhasználónév<input class="input" name="user" autocomplete="username" required></label>
         <label class="f">Jelszó<input class="input" name="pass" type="password" autocomplete="current-password" required></label>
@@ -15,7 +16,7 @@ export function renderLogin(root, onDone) {
         <div id="err"></div>
         <button class="btn primary" style="justify-content:center" id="go">Belépés</button>
         <div class="small muted">A jelszavadat nem tároljuk. A belépés után csak egy titkosított megújító token marad a szerveren, így nem kell újra belépned.</div>
-        <a href="#" id="alt" class="small" style="text-align:center">Nem megy? Belépés a KRÉTA oldalán keresztül</a>
+        
       </form>` : `
       <div class="grid" style="gap:12px">
         <ol class="small muted" style="margin:0;padding-left:18px;display:grid;gap:6px">
