@@ -14,14 +14,56 @@ export const subjName = (n) => S.prefs.subjectNames?.[n] || n;
 export const teacherName = (n) => (n ? S.prefs.teacherNames?.[n] || n : "");
 export const shownName = () => S.prefs.nickname || S.prefs.displayName || S.raw.tanulo?.data?.Nev?.split(" ").slice(-1)[0] || "Diák";
 
-export const grades = () => U.normGrades(S.raw.jegyek?.data);
+// Jótanuló mód: minden számértékű jegy ötösként jelenik meg (csak a kijelzőn, a KRÉTA-ban nem változik).
+export const grades = () => {
+  const gs = U.normGrades(S.raw.jegyek?.data);
+  return S.prefs.goodStudent ? gs.map((g) => (g.value != null ? { ...g, value: 5 } : g)) : gs;
+};
 export const numericGrades = () => grades().filter((g) => g.value != null && !g.isTerm && !S.prefs.hiddenSubjects?.includes(g.subject));
 export const termGrades = () => grades().filter((g) => g.isTerm);
-export const lessons = () => U.normLessons(S.raw.orarend?.data);
+export const lessons = () => fillTestLessons(U.normLessons(S.raw.orarend?.data), U.mondayOf(new Date()));
 export const absences = () => U.normAbs(S.raw.mulasztasok?.data);
-export const homework = () => U.normHw(S.raw.hazi?.data);
-export const tests = () => U.normTests(S.raw.szamonkeres?.data);
+// A KRÉTA-s adatokhoz hozzávesszük a Tervezőben felvett saját házikat és dolgozatokat (own: true).
+const day = (s) => new Date(s + "T00:00");
+export const homework = () => [
+  ...U.normHw(S.raw.hazi?.data),
+  ...(S.prefs.myHomework || []).map((h) => ({ id: "own_" + h.id, subject: h.subject, teacher: "", text: h.text, given: day(h.date), due: day(h.date), done: !!h.done, own: true })),
+].sort((a, b) => a.due - b.due);
+export const tests = () => [
+  ...U.normTests(S.raw.szamonkeres?.data),
+  ...(S.prefs.myTests || []).map((t) => ({ id: "own_" + t.id, subject: t.subject, teacher: "", topic: t.topic, kind: "saját dolgozat", date: day(t.date), own: true })),
+].sort((a, b) => a.date - b.date);
 export const notes = () => U.normNotes(S.raw.feljegyzesek?.data);
+
+// Developer mód: a tanítási napokat (h–p), ahol nincs óra, véletlen (stabil, napra szóló) tesztórákkal tölti fel.
+function testPool(ls) {
+  const s = new Set(ls.map((l) => l.subject));
+  U.normGrades(S.raw.jegyek?.data).forEach((g) => s.add(g.subject));
+  U.normHw(S.raw.hazi?.data).forEach((h) => s.add(h.subject));
+  U.normTests(S.raw.szamonkeres?.data).forEach((t) => s.add(t.subject));
+  const pool = [...s].filter((x) => x && x !== "Egyéb");
+  return pool.length >= 3 ? pool : ["Matematika", "Magyar nyelv és irodalom", "Történelem", "Angol nyelv", "Fizika", "Testnevelés"];
+}
+function seeded(str) {
+  let h = 1779033703 ^ str.length;
+  for (let i = 0; i < str.length; i++) { h = Math.imul(h ^ str.charCodeAt(i), 3432918353); h = (h << 13) | (h >>> 19); }
+  return () => { h = Math.imul(h ^ (h >>> 16), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); return ((h ^= h >>> 16) >>> 0) / 4294967296; };
+}
+export function fillTestLessons(ls, monday) {
+  if (!S.prefs.devMode || !S.prefs.devFillTimetable) return ls;
+  const pool = testPool(ls), out = [...ls];
+  for (let i = 0; i < 5; i++) {
+    const d = U.addDays(monday, i);
+    if (ls.some((l) => U.sameDay(l.start, d))) continue;
+    const rnd = seeded(U.iso(d)), left = [...pool], n = Math.min(left.length, 5 + Math.floor(rnd() * 3));
+    for (let k = 0; k < n; k++) {
+      const subject = left.splice(Math.floor(rnd() * left.length), 1)[0];
+      const start = new Date(d); start.setHours(8, 55 * k, 0, 0);
+      out.push({ id: "test_" + U.iso(d) + k, start, end: new Date(start.getTime() + 45 * 60000), subject, name: subject, teacher: "", sub: "", room: "T" + (10 + k), nr: k + 1, off: false, topic: "", test: false, hw: false, fake: true });
+    }
+  }
+  return out.sort((a, b) => a.start - b.start);
+}
 
 export const avgOf = (arr) => U.avg(arr, S.prefs.weighted !== false);
 

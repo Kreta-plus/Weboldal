@@ -18,7 +18,7 @@ export function render(root) {
         <span class="dot" style="background:${subjColor(h.subject)}"></span><b class="grow">${esc(subjName(h.subject))}</b>
         <span class="chip ${h.due < today ? "bad" : h.due - today < 864e5 * 1.5 ? "warn" : ""}">${relDay(h.due)}</span></div>
         <div style="margin:10px 0 6px;white-space:pre-wrap">${esc(h.text.replace(/<[^>]+>/g, " ").trim())}</div>
-        <div class="small muted">${esc(teacherName(h.teacher))} · feladva: ${fmtFull(h.given)} · határidő: ${fmtFull(h.due)}</div></div>`).join("") || `<div class="card empty">Itt nincs semmi 🎉</div>`}</div>
+        <div class="small muted">${h.own ? "saját · " : esc(teacherName(h.teacher)) + " · feladva: " + fmtFull(h.given) + " · "}határidő: ${fmtFull(h.due)}</div></div>`).join("") || `<div class="card empty">Itt nincs semmi 🎉</div>`}</div>
       <div class="card"><h3>Közelgő számonkérések</h3>${ts.length ? `<div class="list">${ts.map((t) => `<div class="item"><span class="dot" style="background:${subjColor(t.subject)}"></span>
         <div class="grow"><b>${esc(subjName(t.subject))}</b><div class="small muted">${esc(t.kind || "számonkérés")}${t.topic ? " · " + esc(t.topic) : ""}</div></div><span class="chip warn">${relDay(t.date)}</span></div>`).join("")}</div>` : `<div class="empty">Nincs bejelentett számonkérés</div>`}</div></div>`;
   root.querySelectorAll("#tabs button").forEach((b) => (b.onclick = () => { tab = b.dataset.t; render(root); }));

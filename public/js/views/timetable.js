@@ -1,4 +1,4 @@
-import { S as ST, subjName, teacherName, loadWeek } from "../state.js";
+import { S as ST, subjName, teacherName, loadWeek, fillTestLessons } from "../state.js";
 import { esc, normLessons, mondayOf, addDays, iso, sameDay, fmtTime, fmtDate, DAYS, subjColor, toast } from "../util.js";
 
 let monday = mondayOf(new Date());
@@ -11,7 +11,7 @@ export async function render(root, { refresh } = {}) {
   bind(root);
   let res;
   try { res = await loadWeek(monday, refresh); } catch (e) { root.querySelector(".tt").outerHTML = `<div class="card empty">${esc(e.message)}</div>`; return; }
-  const ls = normLessons(res.data);
+  const ls = fillTestLessons(normLessons(res.data), monday);
   const now = new Date();
   const days = [0, 1, 2, 3, 4].map((i) => addDays(monday, i));
   root.querySelector(".tt").innerHTML = days.map((d, i) => {
@@ -21,7 +21,7 @@ export async function render(root, { refresh } = {}) {
         <b>${l.nr ? l.nr + ". " : ""}${esc(subjName(l.subject))}</b>
         <span class="t">${fmtTime(l.start)}–${fmtTime(l.end)} · ${esc(l.room || "—")}</span>
         <span class="t">${esc(teacherName(l.sub || l.teacher))}${l.sub ? " · helyettesítés" : ""}${l.off ? " · elmarad" : ""}</span>
-        ${l.test || l.hw ? `<span class="row" style="gap:4px">${l.test ? `<span class="chip warn">dolgozat</span>` : ""}${l.hw ? `<span class="chip">házi</span>` : ""}</span>` : ""}
+        ${l.fake ? `<span class="chip">teszt óra</span>` : ""}${l.test || l.hw ? `<span class="row" style="gap:4px">${l.test ? `<span class="chip warn">dolgozat</span>` : ""}${l.hw ? `<span class="chip">házi</span>` : ""}</span>` : ""}
       </div>`).join("") || `<div class="muted small" style="padding:8px">Nincs óra</div>`}</div>`;
   }).join("");
   if (res.meta?.stale) toast("Régebbi adatot mutatok, a KRÉTA most nem elérhető");

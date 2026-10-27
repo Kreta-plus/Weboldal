@@ -21,7 +21,7 @@ from urllib.parse import parse_qs, quote, urlencode, urljoin, urlparse
 import requests
 
 from . import config as C
-from . import db, security
+from . import db, demo, security
 
 
 class KretaError(Exception):
@@ -276,6 +276,9 @@ def fetch(uid, what, params=None, force=False):
     if not ep:
         raise KretaError("Ismeretlen végpont", 404, "nf")
     params = {k: v for k, v in (params or {}).items() if k in ("datumTol", "datumIg")}
+    u0 = db.one("SELECT inst FROM users WHERE id=?", (uid,))
+    if u0 and u0["inst"] == demo.DEMO_INST:  # teszt fiók: generált adat, nincs hálózat
+        return {"data": demo.data(uid, what, params), "meta": {"fetchedAt": time.time(), "stale": False, "cached": False}}
     ckey = what + ("?" + urlencode(sorted(params.items())) if params else "")
     row = _cache_get(uid, ckey)
     now = time.time()

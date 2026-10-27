@@ -28,12 +28,20 @@ DEFAULTS = {
     "hiddenSubjects": [],
     "myHomework": [],         # saját házik: {id, subject, date, text, done}
     "myTests": [],            # saját dolgozatok: {id, subject, date, topic}
+    "packItems": {},          # tantárgy -> ["füzet", "tankönyv", ...]
+    "packAll": [],            # minden órához vinni valók (pl. tolltartó)
+    "packLayout": "list",     # list | grid | check | strip
+    "funnyQuips": True,       # vicces szöveg a kezdőlapon a holnapi órák alapján
+    "goodStudent": False,     # jótanuló mód: minden jegy 5-ösként látszik (csak a kijelzőn)
+    "devMode": False,         # developer mód
+    "devFillLessons": False,  # fejlesztői: ha holnap nincs óra, véletlen órákkal tölti fel
+    "devFillTimetable": False,  # fejlesztői: az üres tanítási napokat teszt órákkal tölti fel az órarendben
     "widgets": ["avg", "next", "grades", "homework", "tests", "absences", "trend", "subjects"],
 }
 
 THEMES = {"auto", "dark", "light", "amoled"}
 DENSITY = {"compact", "normal", "cozy"}
-VIEWS = {"dashboard", "grades", "stats", "timetable", "homework", "absences", "notes", "names", "planner", "settings"}
+VIEWS = {"dashboard", "grades", "stats", "timetable", "homework", "absences", "notes", "names", "planner", "pack", "settings"}
 
 
 def _str(v, n):
@@ -115,6 +123,22 @@ def sanitize(d):
     out["hiddenSubjects"] = [_str(x, 120) for x in hs[:200] if isinstance(x, str)] if isinstance(hs, list) else []
     out["myHomework"] = _plans(d.get("myHomework"), "text")
     out["myTests"] = _plans(d.get("myTests"), "topic")
+    pack = {}
+    if isinstance(d.get("packItems"), dict):
+        for k, v in list(d["packItems"].items())[:200]:
+            if isinstance(k, str) and isinstance(v, list):
+                items = [_str(x, 60) for x in v[:40] if isinstance(x, str) and x.strip()]
+                if items:
+                    pack[k[:120]] = items
+    out["packItems"] = pack
+    pa = d.get("packAll")
+    out["packAll"] = [_str(x, 60) for x in pa[:40] if isinstance(x, str) and x.strip()] if isinstance(pa, list) else []
+    out["packLayout"] = d.get("packLayout") if d.get("packLayout") in {"list", "grid", "check", "strip"} else "list"
+    out["funnyQuips"] = bool(d.get("funnyQuips", True))
+    out["goodStudent"] = bool(d.get("goodStudent", False))
+    out["devMode"] = bool(d.get("devMode", False))
+    out["devFillLessons"] = out["devMode"] and bool(d.get("devFillLessons", False))
+    out["devFillTimetable"] = out["devMode"] and bool(d.get("devFillTimetable", False))
     w = d.get("widgets")
     allowed = set(DEFAULTS["widgets"])
     out["widgets"] = [x for x in w if x in allowed] if isinstance(w, list) else DEFAULTS["widgets"]

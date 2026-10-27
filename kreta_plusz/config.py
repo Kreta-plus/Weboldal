@@ -57,3 +57,6 @@ STALE_MAX = 7 * 24 * 3600                                  # hiba esetén ennél
 SESSION_DAYS = 365
 LOGIN_MAX_ATTEMPTS = 5       # ennyi próbálkozás ...
 LOGIN_WINDOW = 10 * 60       # ... ennyi idő alatt, IP-nként és fiókonként
+
+# --- Teszt fiók (véletlen adatokkal, KRÉTA nélkül); KP_DEMO=0-val kikapcsolható ---
+DEMO_ENABLED = os.environ.get("KP_DEMO", "1") != "0"

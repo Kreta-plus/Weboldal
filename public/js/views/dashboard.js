@@ -1,5 +1,8 @@
-import { S as ST, subjName, teacherName, shownName, grades, numericGrades, lessons, homework, tests, absences, avgOf, bySubject } from "../state.js";
-import { esc, f2, gcls, fmtDate, fmtTime, relDay, d0, sameDay, subjColor, MONTHS } from "../util.js";
+import { S as ST, subjName, teacherName, shownName, grades, numericGrades, lessons, homework, tests, absences, avgOf, bySubject, loadWeek, fillTestLessons } from "../state.js";
+import { esc, f2, gcls, fmtDate, fmtTime, relDay, d0, sameDay, subjColor, MONTHS, normLessons, mondayOf, addDays, iso } from "../util.js";
+import { tomorrowQuip } from "../funny.js";
+
+const quipCache = {}; // naponta/óraszerkezetenként egy szöveg, hogy újrarajzoláskor ne változzon
 import { line, bars } from "../charts.js";
 
 export const gradeChip = (g) => `<span class="gr ${gcls(g.value)} ${g.weight !== 1 ? "w" : ""}" title="${esc(subjName(g.subject))} · ${esc(g.topic || g.mode)} · ${fmtDate(g.date)}${g.weight !== 1 ? ` · súly ${Math.round(g.weight * 100)}%` : ""}">${g.value ?? "·"}${g.weight !== 1 ? `<sup>${Math.round(g.weight * 100)}</sup>` : ""}</span>`;
@@ -88,5 +91,21 @@ export function render(root) {
   root.innerHTML = `
     <div class="topbar"><div><h1>${hello}, ${esc(shownName())}! ${esc(ST.prefs.emoji || "")}</h1>
       <div class="sub">${new Intl.DateTimeFormat("hu-HU", { weekday: "long", month: "long", day: "numeric" }).format(now)}${nextL ? ` · következő óra: <b>${esc(subjName(nextL.subject))}</b> ${fmtTime(nextL.start)}` : ""}</div></div></div>
+    <div id="quip"></div>
     <div class="grid" style="gap:var(--gap)">${kpis}<div class="grid g3">${cards.join("") || `<div class="card empty span2">Minden widget ki van kapcsolva. Beállítások → Kezdőlap.</div>`}</div></div>`;
+  if (ST.prefs.funnyQuips !== false) showQuip(root.querySelector("#quip"), today);
+}
+
+async function showQuip(el, today) {
+  if (!el) return;
+  const day = addDays(today, 1);
+  let ls;
+  try { ls = fillTestLessons(normLessons((await loadWeek(mondayOf(day))).data), mondayOf(day)).filter((l) => sameDay(l.start, day)); } catch { return; }
+  const key = iso(day) + ls.map((l) => l.id).join();
+  quipCache[key] ||= tomorrowQuip({
+    day, lessons: ls, subjName,
+    tests: tests().filter((t) => sameDay(t.date, day)),
+    homework: homework().filter((h) => !h.done && sameDay(h.due, day)),
+  });
+  el.innerHTML = `<div class="card quip"><span class="quip-ic">💬</span><div><div class="small muted">Holnapi órák alapján</div><div class="quip-t">${esc(quipCache[key])}</div></div></div>`;
 }

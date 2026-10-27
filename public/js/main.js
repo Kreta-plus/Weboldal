@@ -4,6 +4,7 @@ import { S, loadPrefs, loadBundle, applyPrefs, shownName, freshest } from "./sta
 import { esc, ago, toast } from "./util.js";
 import { renderLogin } from "./views/login.js";
 
+const PRIMARY = ["dashboard", "grades", "timetable", "homework"]; // telefonon az alsó sávban; a többi a „Továbbiak” listában
 const VIEWS = {
   dashboard: ["Kezdőlap", "🏠", () => import("./views/dashboard.js")],
   grades: ["Jegyek", "📘", () => import("./views/grades.js")],
@@ -12,6 +13,7 @@ const VIEWS = {
   homework: ["Házi", "📝", () => import("./views/homework.js")],
   absences: ["Hiányzás", "⏱️", () => import("./views/absences.js")],
   planner: ["Tervező", "➕", () => import("./views/planner.js")],
+  pack: ["Táska", "🎒", () => import("./views/pack.js")],
   notes: ["Feljegyzések", "💬", () => import("./views/notes.js")],
   names: ["Nevek", "🏷️", () => import("./views/names.js")],
   settings: ["Beállítások", "⚙️", () => import("./views/settings.js")],
@@ -35,18 +37,27 @@ function showMsg(t) { app.innerHTML = `<div class="login-wrap"><div class="card 
 function shell() {
   const hash = location.hash.slice(1);
   current = VIEWS[hash] ? hash : S.prefs.startView || "dashboard";
+  const link = (k, cls = "") => { const [l, ic] = VIEWS[k]; return `<a data-v="${k}" href="#${k}" class="${cls}"><span class="ic">${ic}</span>${l}</a>`; };
   app.innerHTML = `<div class="shell"><aside class="side"><div class="brand"><i>K+</i>KRÉTA Plusz</div>
-    <nav class="nav">${Object.entries(VIEWS).map(([k, [l, ic]]) => `<a data-v="${k}" href="#${k}"><span class="ic">${ic}</span>${l}</a>`).join("")}</nav>
+    <nav class="nav">${Object.keys(VIEWS).map((k) => link(k, PRIMARY.includes(k) ? "" : "sec")).join("")}
+      <button class="more-btn" id="more" aria-expanded="false"><span class="ic">⋯</span>Továbbiak</button></nav>
     <div class="me"><div class="avatar">${esc(S.prefs.emoji || "🎓")}</div><div class="grow"><b>${esc(shownName())}</b><div class="small muted" id="fresh"></div></div>
       <button class="btn sm" id="sync" title="Frissítés">⟳</button></div></aside>
+    <div class="more-sheet" id="sheet" hidden>${Object.keys(VIEWS).filter((k) => !PRIMARY.includes(k)).map((k) => link(k)).join("")}</div>
     <main class="main" id="view"></main></div>`;
   document.getElementById("sync").onclick = () => refresh(true);
+  const sheet = document.getElementById("sheet"), more = document.getElementById("more");
+  const setSheet = (open) => { sheet.hidden = !open; more.setAttribute("aria-expanded", open); };
+  more.onclick = (e) => { e.stopPropagation(); setSheet(sheet.hidden); };
+  sheet.onclick = () => setSheet(false);
+  document.addEventListener("click", (e) => { if (!sheet.hidden && !sheet.contains(e.target)) setSheet(false); });
   show();
 }
 
 async function show() {
   const [, , loader] = VIEWS[current];
-  document.querySelectorAll(".nav a").forEach((a) => a.classList.toggle("on", a.dataset.v === current));
+  document.querySelectorAll(".nav a, .more-sheet a").forEach((a) => a.classList.toggle("on", a.dataset.v === current));
+  document.getElementById("more")?.classList.toggle("on", !PRIMARY.includes(current));
   const view = document.getElementById("view");
   if (!view) return;
   view.innerHTML = `<div class="grid g3">${"<div class='skeleton'></div>".repeat(3)}</div>`;

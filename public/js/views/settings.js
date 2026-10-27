@@ -1,6 +1,7 @@
 import { S as ST, savePrefs, allSubjects, subjName } from "../state.js";
 import { get, post } from "../api.js";
-import { esc, toast, ago } from "../util.js";
+import { esc, toast, ago, iso } from "../util.js";
+import { randomDisclaimer } from "../funny.js";
 
 const SWATCHES = ["#6c5ce7", "#2ecc8f", "#38bdf8", "#f43f5e", "#f59e0b", "#d946ef", "#14b8a6", "#ef4444"];
 const WIDGETS = { avg: "Összesítő számok", next: "Mai órák", grades: "Friss jegyek", homework: "Házik", tests: "Számonkérések", absences: "Hiányzások", trend: "Átlag-diagram", subjects: "Tantárgyi átlagok" };
@@ -84,6 +85,7 @@ export async function render(root) {
       <label class="f">Betűméret (${Math.round(p.fontScale * 100)}%)<input type="range" id="fs" min="0.85" max="1.3" step="0.05" value="${p.fontScale}"></label>
       <label class="f">Lekerekítés (${p.radius}px)<input type="range" id="rd" min="0" max="28" step="1" value="${p.radius}"></label>
       <label class="f">Kezdőoldal<select class="input" id="sv">${[["dashboard", "Kezdőlap"], ["grades", "Jegyek"], ["stats", "Statisztikák"], ["timetable", "Órarend"], ["homework", "Házi"]].map(([k, l]) => `<option value="${k}" ${p.startView === k ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+      <label class="switch"><input type="checkbox" id="fq" ${p.funnyQuips !== false ? "checked" : ""}><span>Vicces szöveg a kezdőlapon (a holnapi órák alapján)</span></label>
     </div></div>
 
     <div class="card"><h3>Jegyek és átlag</h3><div class="grid" style="gap:14px">
@@ -95,10 +97,22 @@ export async function render(root) {
 
     <div class="card span2"><h3>Egyedi CSS <small>saját kinézet, csak nálad</small></h3>
       <div class="chips" style="margin-bottom:10px">${Object.keys(CSS_PRESETS).map((k) => `<button class="btn sm pre" data-k="${esc(k)}">+ ${esc(k)}</button>`).join("")}<button class="btn sm danger" id="cssclr">Törlés</button></div>
-      <div class="small muted" style="margin-bottom:6px">Osztály beszúrása a kurzorhoz</div>
-      <div class="clsgrid">${CSS_CLASSES.map(([c, d]) => `<button class="btn sm cls" data-c="${esc(c)}"><b>.${esc(c)}</b><span>${esc(d)}</span></button>`).join("")}</div>
+      <details class="cls-d"><summary>Osztály beszúrása a kurzorhoz (${CSS_CLASSES.length})</summary><div class="clsgrid">${CSS_CLASSES.map(([c, d]) => `<button class="btn sm cls" data-c="${esc(c)}"><b>.${esc(c)}</b><span>${esc(d)}</span></button>`).join("")}</div></details>
       <div class="acwrap"><textarea class="input" id="css" spellcheck="false" placeholder="pl. .card { border-radius: 4px; } — írj egy . -ot vagy tulajdonságot a javaslatokhoz">${esc(p.customCss)}</textarea></div>
       <div class="small muted" style="margin-top:6px">Használható változók: --accent, --bg, --surface, --text, --muted, --radius, --g1…--g5. Külső url() és @import nem engedett.</div></div>
+
+    <div class="card"><h3>Jótanuló mód <small>🎓</small></h3><div class="grid" style="gap:12px">
+      <label class="switch"><input type="checkbox" id="gs" ${p.goodStudent ? "checked" : ""}><span>Jótanuló mód: minden jegy 5-ös</span></label>
+      <div class="small muted">Csak a te kijelződön látszik így, a KRÉTA-ban a jegyek nem változnak. Bekapcsoláskor el kell fogadnod egy nyilatkozatot.</div>
+    </div></div>
+
+    <div class="card"><h3>Developer mód <small>fejlesztői eszközök</small></h3><div class="grid" style="gap:14px">
+      <label class="switch"><input type="checkbox" id="dev" ${p.devMode ? "checked" : ""}><span>Developer mód bekapcsolása</span></label>
+      ${p.devMode ? `<label class="switch"><input type="checkbox" id="devfill" ${p.devFillLessons ? "checked" : ""}><span>Táska: ha holnap nincs óra, véletlen órákkal töltse fel</span></label>
+      <label class="switch"><input type="checkbox" id="devtt" ${p.devFillTimetable ? "checked" : ""}><span>Órarend: az üres tanítási napokat töltse fel teszt órákkal</span></label>
+      <div class="row wrap"><button class="btn" id="devhw">+ Teszt házi holnapra</button><button class="btn danger" id="devhwclr">Teszt házik törlése</button></div>
+      <div class="small muted">A teszt házi egy véletlen tantárgyhoz kerül, holnapi határidővel (saját házik közé, „[teszt]” előtaggal).</div>` : ""}
+    </div></div>
 
     <div class="card"><h3>Adatok és biztonság</h3><div class="grid" style="gap:10px">
       <div class="small muted">A jelszavad nincs eltárolva. A szerver titkosítva tárol egy megújító tokent, ezért nem kell újra belépned.</div>
@@ -113,7 +127,36 @@ export async function render(root) {
   root.querySelector("#fs").oninput = (e) => savePrefs({ fontScale: parseFloat(e.target.value) });
   root.querySelector("#rd").oninput = (e) => savePrefs({ radius: parseInt(e.target.value) });
   root.querySelector("#sv").onchange = (e) => savePrefs({ startView: e.target.value });
+  root.querySelector("#fq").onchange = (e) => savePrefs({ funnyQuips: e.target.checked });
   root.querySelector("#wt").onchange = (e) => savePrefs({ weighted: e.target.checked });
+  root.querySelector("#gs").onchange = (e) => {
+    if (!e.target.checked) { savePrefs({ goodStudent: false }); return; }
+    e.target.checked = false; // csak az elfogadás után kapcsol be
+    const bg = document.createElement("div");
+    bg.className = "modal-bg";
+    bg.innerHTML = `<div class="card modal" role="dialog" aria-modal="true"><h3>🎓 Jótanuló mód</h3>
+      <p class="gs-text">${esc(randomDisclaimer())}</p>
+      <label class="switch"><input type="checkbox" id="gsok"><span>Elolvastam, és elfogadom</span></label>
+      <div class="row" style="margin-top:14px"><button class="btn grow" id="gsno">Mégsem</button><button class="btn primary grow" id="gsyes" disabled>Bekapcsolom</button></div></div>`;
+    document.body.appendChild(bg);
+    const ok = bg.querySelector("#gsok"), yes = bg.querySelector("#gsyes");
+    ok.onchange = () => (yes.disabled = !ok.checked);
+    const close = () => bg.remove();
+    bg.querySelector("#gsno").onclick = close;
+    bg.onclick = (ev) => { if (ev.target === bg) close(); };
+    yes.onclick = () => { savePrefs({ goodStudent: true }); close(); render(root); toast("Jótanuló mód bekapcsolva 🎉"); };
+  };
+  root.querySelector("#dev").onchange = (e) => { savePrefs({ devMode: e.target.checked, ...(e.target.checked ? {} : { devFillLessons: false, devFillTimetable: false }) }); render(root); };
+  root.querySelector("#devtt")?.addEventListener("change", (e) => savePrefs({ devFillTimetable: e.target.checked }));
+  root.querySelector("#devfill")?.addEventListener("change", (e) => savePrefs({ devFillLessons: e.target.checked }));
+  root.querySelector("#devhw")?.addEventListener("click", () => {
+    if (!subs.length) return toast("Nincs betöltött tantárgy");
+    const d = new Date(); d.setDate(d.getDate() + 1);
+    const subject = subs[Math.floor(Math.random() * subs.length)];
+    savePrefs({ myHomework: [...(p.myHomework || []), { id: "t" + Date.now().toString(36), subject, date: iso(d), text: "[teszt] Gyakorló feladatok " + (1 + Math.floor(Math.random() * 40)) + ". oldal", done: false }] });
+    toast("Teszt házi hozzáadva: " + subjName(subject));
+  });
+  root.querySelector("#devhwclr")?.addEventListener("click", () => { savePrefs({ myHomework: (p.myHomework || []).filter((h) => !h.text.startsWith("[teszt]")) }); toast("Teszt házik törölve"); });
   root.querySelector("#ta").onchange = (e) => savePrefs({ targetAvg: parseFloat(e.target.value) || 4.5 });
   root.querySelectorAll(".wg").forEach((c) => (c.onchange = () => savePrefs({ widgets: [...root.querySelectorAll(".wg:checked")].map((x) => x.dataset.k) })));
   root.querySelectorAll(".hs").forEach((c) => (c.onchange = () => savePrefs({ hiddenSubjects: [...root.querySelectorAll(".hs:checked")].map((x) => x.dataset.s) })));

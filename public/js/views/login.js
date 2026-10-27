@@ -16,7 +16,8 @@ export function renderLogin(root, onDone) {
         <div id="err"></div>
         <button class="btn primary" style="justify-content:center" id="go">Belépés</button>
         <div class="small muted">A jelszavadat nem tároljuk. A belépés után csak egy titkosított megújító token marad a szerveren, így nem kell újra belépned.</div>
-        
+        <button type="button" class="btn" style="justify-content:center" id="demo">🧪 Belépés teszt fiókkal</button>
+        <div class="small muted">A teszt fiók véletlen jegyekkel, órákkal, házikkal és dolgozatokkal van feltöltve, a KRÉTA-hoz nem kapcsolódik.</div>
       </form>` : `
       <div class="grid" style="gap:12px">
         <ol class="small muted" style="margin:0;padding-left:18px;display:grid;gap:6px">
@@ -35,6 +36,10 @@ export function renderLogin(root, onDone) {
     const err = (m) => (root.querySelector("#err").innerHTML = m ? `<div class="err">${esc(m)}</div>` : "");
     if (mode === "form") {
       root.querySelector("#alt").onclick = (e) => { e.preventDefault(); mode = "link"; draw(); };
+      root.querySelector("#demo").onclick = async (e) => {
+        e.target.disabled = true; err("");
+        try { await post("/api/auth/demo"); onDone(); } catch (ex) { err(ex.message); e.target.disabled = false; }
+      };
       root.querySelector("#f").onsubmit = async (e) => {
         e.preventDefault();
         const fd = new FormData(e.target), btn = root.querySelector("#go");

@@ -54,10 +54,12 @@ export function normGrades(raw) {
     };
   }).filter((g) => !isNaN(g.date)).sort((a, b) => b.date - a.date);
 }
+// Nem valódi órák: szünetek, munkaszüneti napok (a KRÉTA órarend-elemként adja őket).
+const NOT_LESSON = /(munkasz[üu]net|[őo]szi sz[üu]net|t[ée]li sz[üu]net|tavaszi sz[üu]net|ny[áa]ri sz[üu]net|tan[íi]t[áa]si sz[üu]net|tan[íi]t[áa]s n[ée]lk[üu]li|sz[üu]netnap|ünnepnap)/i;
 export function normLessons(raw) {
-  return (Array.isArray(raw) ? raw : []).map((l) => ({
+  return (Array.isArray(raw) ? raw : []).filter((l) => !NOT_LESSON.test([l.Tantargy?.Nev, l.Nev, l.Tema, l.Tipus?.Nev].filter(Boolean).join(" "))).map((l) => ({
     id: l.Uid, start: new Date(l.KezdetIdopont), end: new Date(l.VegIdopont), subject: l.Tantargy?.Nev || l.Nev || "Óra",
-    name: l.Nev || "", teacher: l.TanarNeve || "", sub: l.HelyettesitoTanarNeve || "", room: l.Tanterem || "", nr: l.Oraszam,
+    name: l.Nev || "", teacher: l.TanarNeve || "", sub: l.HelyettesitoTanarNeve || "", room: l.TeremNeve || (typeof l.Tanterem === "string" ? l.Tanterem : l.Tanterem?.Nev) || l.Terem || "", nr: l.Oraszam,
     off: /elmaradt/i.test(l.Allapot?.Nev || ""), topic: l.Tema || "", test: !!l.BejelentettSzamonkeresUid, hw: !!l.HaziFeladatUid,
   })).filter((l) => !isNaN(l.start)).sort((a, b) => a.start - b.start);
 }

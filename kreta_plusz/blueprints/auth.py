@@ -6,7 +6,8 @@ from urllib.parse import parse_qs, urlparse
 import requests
 from flask import Blueprint, g, jsonify, make_response, request
 
-from .. import db, kreta, security
+from .. import config as C
+from .. import db, demo, kreta, security
 
 bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
@@ -47,6 +48,24 @@ def login():
     security.clear_attempts(*keys)
     uid = kreta.save_user(inst, user, j)
     return _start(uid, remember)
+
+
+@bp.post("/demo")
+def demo_login():
+    """Teszt fiók: minden belépés új, különálló fiók véletlen adatokkal (jelszó és KRÉTA nélkül)."""
+    if not C.DEMO_ENABLED:
+        return jsonify(error="A teszt fiók ki van kapcsolva"), 403
+    key = f"demo:{_client_ip()}"
+    if security.too_many_attempts(key):
+        return jsonify(error="Túl sok teszt fiók, várj pár percet", code="throttle"), 429
+    security.record_attempt(key)
+    now = time.time()
+    db.run("DELETE FROM users WHERE inst=? AND created<?", (demo.DEMO_INST, now - 7 * 86400))
+    uid = db.run(
+        "INSERT INTO users(ukey,inst,username,name,created,last_login) VALUES(?,?,?,?,?,?)",
+        (f"demo:{secrets.token_hex(8)}", demo.DEMO_INST, "teszt", "Teszt Elek", now, now),
+    ).lastrowid
+    return _start(uid, True)
 
 
 @bp.get("/me")
