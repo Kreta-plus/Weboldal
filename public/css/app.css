@@ -194,3 +194,12 @@ svg.chart .grid { stroke: var(--border); stroke-width: 1; }
   align-items: center;
   justify-content: center;
 }
+
+.clsgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;margin-bottom:10px}
+.clsgrid .cls{display:flex;flex-direction:column;align-items:flex-start;text-align:left;height:auto;gap:2px;white-space:normal}
+.clsgrid .cls span{font-size:.75rem;opacity:.65;font-weight:400}
+.acwrap{position:relative}
+.ac{position:absolute;left:8px;right:8px;top:100%;margin-top:-4px;z-index:20;max-height:220px;overflow:auto;background:var(--surface);border:1px solid var(--accent);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.ac-i{display:flex;justify-content:space-between;gap:12px;padding:6px 10px;cursor:pointer;font-size:.85rem}
+.ac-i span{opacity:.6;font-size:.75rem}
+.ac-i.on,.ac-i:hover{background:var(--accent-soft)}

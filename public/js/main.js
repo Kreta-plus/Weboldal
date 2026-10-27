@@ -11,6 +11,7 @@ const VIEWS = {
   timetable: ["Órarend", "🗓️", () => import("./views/timetable.js")],
   homework: ["Házi", "📝", () => import("./views/homework.js")],
   absences: ["Hiányzás", "⏱️", () => import("./views/absences.js")],
+  planner: ["Tervező", "➕", () => import("./views/planner.js")],
   notes: ["Feljegyzések", "💬", () => import("./views/notes.js")],
   names: ["Nevek", "🏷️", () => import("./views/names.js")],
   settings: ["Beállítások", "⚙️", () => import("./views/settings.js")],

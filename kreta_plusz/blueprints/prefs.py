@@ -26,12 +26,14 @@ DEFAULTS = {
     "teacherNames": {},
     "subjectGoals": {},
     "hiddenSubjects": [],
+    "myHomework": [],         # saját házik: {id, subject, date, text, done}
+    "myTests": [],            # saját dolgozatok: {id, subject, date, topic}
     "widgets": ["avg", "next", "grades", "homework", "tests", "absences", "trend", "subjects"],
 }
 
 THEMES = {"auto", "dark", "light", "amoled"}
 DENSITY = {"compact", "normal", "cozy"}
-VIEWS = {"dashboard", "grades", "stats", "timetable", "homework", "absences", "notes", "names", "settings"}
+VIEWS = {"dashboard", "grades", "stats", "timetable", "homework", "absences", "notes", "names", "planner", "settings"}
 
 
 def _str(v, n):
@@ -55,6 +57,28 @@ def clean_css(css):
     # külső url()-k tiltása, csak data: engedett
     css = re.sub(r"url\(\s*['\"]?(?!data:)[^)]*\)", "none", css, flags=re.I)
     return css
+
+
+def _plans(v, textkey):
+    out = []
+    if not isinstance(v, list):
+        return out
+    for x in v[:300]:
+        if not isinstance(x, dict):
+            continue
+        date = _str(x.get("date"), 10)
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", date):
+            continue
+        item = {
+            "id": _str(x.get("id"), 40) or str(int(time.time() * 1000)),
+            "subject": _str(x.get("subject"), 120),
+            "date": date,
+            textkey: _str(x.get(textkey), 500),
+        }
+        if textkey == "text":
+            item["done"] = bool(x.get("done"))
+        out.append(item)
+    return out
 
 
 def sanitize(d):
@@ -89,6 +113,8 @@ def sanitize(d):
     out["subjectGoals"] = goals
     hs = d.get("hiddenSubjects")
     out["hiddenSubjects"] = [_str(x, 120) for x in hs[:200] if isinstance(x, str)] if isinstance(hs, list) else []
+    out["myHomework"] = _plans(d.get("myHomework"), "text")
+    out["myTests"] = _plans(d.get("myTests"), "topic")
     w = d.get("widgets")
     allowed = set(DEFAULTS["widgets"])
     out["widgets"] = [x for x in w if x in allowed] if isinstance(w, list) else DEFAULTS["widgets"]

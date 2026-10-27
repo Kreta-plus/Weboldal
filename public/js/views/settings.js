@@ -11,6 +11,64 @@ const CSS_PRESETS = {
   "Nagy számok": ".kpi .v{font-size:3rem}",
 };
 
+const CSS_CLASSES = [
+  ["card", "Kártyák (doboz a tartalom körül)"], ["btn", "Minden gomb"], ["btn.primary", "Kiemelt (elsődleges) gomb"], ["btn.danger", "Piros, veszélyes gomb"],
+  ["input", "Beviteli mezők és legördülők"], ["item", "Listaelem (jegy, házi, óra sora)"], ["list", "Listaelemeket tartó doboz"], ["chip", "Kis címke / jelvény"], ["chips", "Címkék sora"],
+  ["kpi", "Összesítő szám doboz a kezdőlapon"], ["kpi .v", "A KPI nagy száma"], ["kpi .l", "A KPI felirata"], ["topbar", "Oldal tetején a cím sáv"], ["topbar h1", "Oldal főcíme"],
+  ["nav", "Oldalsó menü linkjei"], ["side", "Oldalsó sáv"], ["main", "Fő tartalom terület"], ["les", "Egy óra az órarendben"], ["day", "Egy nap oszlopa az órarendben"],
+  ["today", "A mai nap kiemelése"], ["now", "Éppen zajló óra"], ["seg", "Váltógomb-csoport (pl. téma)"], ["seg button.on", "Aktív váltógomb"], ["bar", "Folyamat-/átlagsáv"],
+  ["toast", "Felbukkanó értesítés"], ["avatar", "Kerek profilkép / monogram"], ["hero", "Nagy felső blokk"], ["subj", "Tantárgy neve"], ["term", "Tanév / félév jelölő"],
+  ["muted", "Halványabb szöveg"], ["small", "Kisebb szöveg"], ["grid", "Rácsos elrendezés"], ["row", "Vízszintes sor"],
+];
+const CSS_PROPS = ["background", "background-color", "border", "border-color", "border-radius", "border-width", "box-shadow", "color", "cursor", "display", "filter", "font-family", "font-size", "font-weight", "gap", "height", "letter-spacing", "line-height", "margin", "max-width", "opacity", "outline", "padding", "text-align", "text-transform", "transform", "transition", "width", "backdrop-filter"];
+const CSS_VARS = ["--accent", "--accent-soft", "--bg", "--surface", "--text", "--muted", "--radius", "--g1", "--g2", "--g3", "--g4", "--g5"];
+
+function cssComplete(ta, onChange) {
+  const box = ta.parentElement, pop = document.createElement("div");
+  pop.className = "ac"; pop.hidden = true; box.appendChild(pop);
+  let items = [], sel = 0, tok = null;
+  const close = () => { pop.hidden = true; items = []; };
+  const draw = () => {
+    pop.innerHTML = items.map((it, i) => `<div class="ac-i ${i === sel ? "on" : ""}" data-i="${i}"><b>${esc(it.label)}</b><span>${esc(it.hint || "")}</span></div>`).join("");
+    pop.hidden = !items.length;
+    pop.querySelector(".on")?.scrollIntoView({ block: "nearest" });
+  };
+  const update = () => {
+    const pos = ta.selectionStart, before = ta.value.slice(0, pos);
+    const inside = (before.match(/{/g) || []).length > (before.match(/}/g) || []).length;
+    const m = before.match(/[.\w-]*$/)[0];
+    tok = { start: pos - m.length, end: pos, inside };
+    if (!m) return close();
+    if (!inside && m[0] === ".") {
+      const q = m.slice(1).toLowerCase();
+      items = CSS_CLASSES.filter(([c]) => c.toLowerCase().includes(q)).map(([c, d]) => ({ label: "." + c, hint: d, kind: "cls" }));
+    } else if (inside && m.startsWith("--")) {
+      items = CSS_VARS.filter((v) => v.startsWith(m)).map((v) => ({ label: v, hint: "változó", kind: "var" }));
+    } else if (inside && /^[a-z-]+$/.test(m) && m.length > 1) {
+      items = CSS_PROPS.filter((x) => x.startsWith(m)).map((x) => ({ label: x, hint: "tulajdonság", kind: "prop" }));
+    } else items = [];
+    items = items.filter((it) => it.label !== m).slice(0, 8);
+    sel = 0; draw();
+  };
+  const accept = (it) => {
+    let ins = it.label, back = 0;
+    if (it.kind === "cls") { ins += " {\n  \n}"; back = 2; }
+    else if (it.kind === "prop") { ins += ": ;"; back = 1; }
+    ta.value = ta.value.slice(0, tok.start) + ins + ta.value.slice(tok.end);
+    const c = tok.start + ins.length - back;
+    ta.focus(); ta.setSelectionRange(c, c); close(); onChange();
+  };
+  ta.addEventListener("input", update);
+  ta.addEventListener("blur", () => setTimeout(close, 150));
+  ta.addEventListener("keydown", (e) => {
+    if (pop.hidden) return;
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); sel = (sel + (e.key === "ArrowDown" ? 1 : items.length - 1)) % items.length; draw(); }
+    else if (e.key === "Enter" || e.key === "Tab") { e.preventDefault(); accept(items[sel]); }
+    else if (e.key === "Escape") close();
+  });
+  pop.addEventListener("mousedown", (e) => { const d = e.target.closest(".ac-i"); if (d) { e.preventDefault(); accept(items[+d.dataset.i]); } });
+}
+
 export async function render(root) {
   const p = ST.prefs;
   let sessions = [];
@@ -37,7 +95,9 @@ export async function render(root) {
 
     <div class="card span2"><h3>Egyedi CSS <small>saját kinézet, csak nálad</small></h3>
       <div class="chips" style="margin-bottom:10px">${Object.keys(CSS_PRESETS).map((k) => `<button class="btn sm pre" data-k="${esc(k)}">+ ${esc(k)}</button>`).join("")}<button class="btn sm danger" id="cssclr">Törlés</button></div>
-      <textarea class="input" id="css" spellcheck="false" placeholder="pl. .card { border-radius: 4px; }">${esc(p.customCss)}</textarea>
+      <div class="small muted" style="margin-bottom:6px">Osztály beszúrása a kurzorhoz</div>
+      <div class="clsgrid">${CSS_CLASSES.map(([c, d]) => `<button class="btn sm cls" data-c="${esc(c)}"><b>.${esc(c)}</b><span>${esc(d)}</span></button>`).join("")}</div>
+      <div class="acwrap"><textarea class="input" id="css" spellcheck="false" placeholder="pl. .card { border-radius: 4px; } — írj egy . -ot vagy tulajdonságot a javaslatokhoz">${esc(p.customCss)}</textarea></div>
       <div class="small muted" style="margin-top:6px">Használható változók: --accent, --bg, --surface, --text, --muted, --radius, --g1…--g5. Külső url() és @import nem engedett.</div></div>
 
     <div class="card"><h3>Adatok és biztonság</h3><div class="grid" style="gap:10px">
@@ -60,6 +120,16 @@ export async function render(root) {
   const css = root.querySelector("#css");
   css.oninput = () => savePrefs({ customCss: css.value });
   root.querySelectorAll(".pre").forEach((b) => (b.onclick = () => { css.value = (css.value + "\n" + CSS_PRESETS[b.dataset.k]).trim(); savePrefs({ customCss: css.value }); }));
+  cssComplete(css, () => savePrefs({ customCss: css.value }));
+  root.querySelectorAll(".cls").forEach((b) => (b.onclick = () => {
+    const snip = "." + b.dataset.c + " {\n  \n}";
+    const a = css.selectionStart ?? css.value.length, e = css.selectionEnd ?? a;
+    const pre = css.value.slice(0, a), lead = pre && !pre.endsWith("\n") ? "\n" : "";
+    css.value = pre + lead + snip + css.value.slice(e);
+    const pos = pre.length + lead.length + snip.length - 2;
+    css.focus(); css.setSelectionRange(pos, pos);
+    savePrefs({ customCss: css.value });
+  }));
   root.querySelector("#cssclr").onclick = () => { css.value = ""; savePrefs({ customCss: "" }); };
   root.querySelector("#exp").onclick = () => {
     const a = document.createElement("a");
