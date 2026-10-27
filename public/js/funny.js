@@ -31,3 +31,48 @@ export function randomDisclaimer() {
   try { localStorage.setItem(KEY, i); } catch {}
   return DISCLAIMERS[i];
 }
+
+// ---------- Kezdőlap: vicces szöveg a holnapi órák alapján ----------
+const pick = (a) => a[Math.floor(Math.random() * a.length)];
+const SUBJ_QUIPS = [
+  [/testnev/i, ["Holnap testnevelés: a tornazsák már az ajtónál vár, a kifogások még nem.", "Testnevelés lesz. A fáradtságot otthon felejtheted, a zoknit viszont ne.", "Holnap tesi, ma este kezdj el nyújtani, vagy legalább gondolj rá."]],
+  [/matem/i, ["Holnap matek: x-et megint keresni kell, pedig tegnap is elveszett.", "Matekóra lesz. A számológép nem gondolkodik helyetted, de mellette kevésbé fáj.", "Matek: ahol a betűk is számok, és a számok is betűk lesznek."]],
+  [/fizik/i, ["Fizika lesz: Newton is megkapta a magáét az almától, te is túléled.", "Holnap fizika, az erő legyen veled, a képletek pedig a füzetedben."]],
+  [/k[ée]mi/i, ["Kémia lesz. Ha bármi füstölni kezd, az vagy a kísérlet, vagy a házid.", "Holnap kémia: remélem, nem te leszel a katalizátor a bajban."]],
+  [/biol/i, ["Biológia lesz, kiderül, melyik sejtorganellum vagy az osztályban.", "Holnap biosz: legalább az élet értelmét nem kérdezik, csak a mitokondriumot."]],
+  [/t[öo]rt[ée]n/i, ["Történelem: holnap megint minden háborúnak az évszáma lesz a lényeg.", "Holnap töri, ha eddig nem tanultad, legalább legyél kreatív az évszámokkal."]],
+  [/magyar/i, ["Magyar irodalom lesz: a költők szenvedtek, most te jössz.", "Holnap magyar, a vesszők helye még mindig rejtély, de legalább a nyelvtanban megoldható."]],
+  [/angol|n[ée]met/i, ["Holnap nyelvóra: remélem, tegnap este nem csak a Duolingo bagoly figyelmeztetett.", "Nyelvóra lesz. A szókincs nagy része nálad is megvan, csak épp rossz nyelven."]],
+  [/inform/i, ["Informatika lesz: ha lefagy a gép, az nem te vagy, hanem a rendszer.", "Holnap infó, és igen, megpróbálhatod ki- és bekapcsolni."]],
+  [/ének|zene/i, ["Ének-zene lesz. A hangod hibátlan, legfeljebb a hallgatóságnak kell erősnek lennie."]],
+  [/földr/i, ["Földrajz lesz, legalább már tudod, hol vagy, mert a térképen még keresni kell."]],
+];
+const COUNT_QUIPS = {
+  none: ["Holnap nincs óra az órarendben. Alhatsz, mint egy medve a téli álmában. 🐻", "Nincs tanítás holnap! Az ébresztőórád szabadságot kapott. 🎉", "Holnap nem kell iskolába menni, és ez nem hiba, ez a rendszer."],
+  few: ["Csak pár óra lesz holnap, szinte már szabadnap.", "Rövid nap jön, a hátizsák is hálás lesz."],
+  many: ["Holnap rengeteg óra lesz. Pakolj be sok kajával és sok türelemmel.", "Hosszú nap vár rád: a kávéd (vagy kakaód) is érdemel egy külön helyet a hátizsákban."],
+};
+const WEEKDAY_QUIPS = { 5: ["Holnap péntek, a hétvége már a küszöbön áll, és kopog.", "Péntek lesz! Már csak egy nap, és a hét befejeződik, ahogy kell."], 1: ["Holnap hétfő. Szoktam mondani: a hét nem is olyan rossz, csak az első napja."] };
+
+export function tomorrowQuip({ day, lessons, tests, homework, subjName }) {
+  const ls = lessons.filter((l) => !l.off);
+  const wd = (day.getDay() + 6) % 7 + 1; // 1 = hétfő
+  const c = [];
+  if (!ls.length) c.push(...COUNT_QUIPS.none);
+  else {
+    const subs = [...new Set(ls.map((l) => l.subject))];
+    for (const [re, qs] of SUBJ_QUIPS) if (subs.some((s) => re.test(s))) c.push(...qs, ...qs);
+    if (ls.length <= 3) c.push(...COUNT_QUIPS.few);
+    if (ls.length >= 7) c.push(...COUNT_QUIPS.many);
+    const first = ls[0].start, hh = first.getHours() * 60 + first.getMinutes();
+    if (hh <= 8 * 60) c.push(`Az első óra ${String(first.getHours()).padStart(2, "0")}:${String(first.getMinutes()).padStart(2, "0")}-kor kezdődik, az ágy már most hiányozni fog. 😴`);
+    if (hh >= 9 * 60) c.push("Holnap később kezdesz, éld ki az extra alvást!");
+    const t = tests[0];
+    if (t) c.push(`Holnap ${subjName(t.subject)} dolgozat lesz${t.topic ? " (" + t.topic + ")" : ""}. A tanulás még belefér az estébe. 📚`, `Dolgozat holnap: ${subjName(t.subject)}. Ma este nem Netflix, hanem jegyzet.`);
+    if (homework.length >= 3) c.push(`Holnapra ${homework.length} házi esedékes. A füzeted már most sóhajtozik.`);
+    else if (homework.length === 1) c.push("Holnapra csak egy házi esedékes, szinte már nem is számít. (De számít.)");
+    c.push(...(WEEKDAY_QUIPS[wd] || []));
+    c.push(`Holnap ${ls.length} óra, ${[...new Set(ls.map((l) => subjName(l.subject)))].slice(0, 3).join(", ")}${subs.length > 3 ? " és még pár" : ""}. Nem lesz ez olyan vészes.`);
+  }
+  return pick(c);
+}

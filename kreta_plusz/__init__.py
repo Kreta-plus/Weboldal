@@ -34,7 +34,7 @@ def create_app():
         )
         if request.path.startswith("/api/"):
             resp.headers["Cache-Control"] = "no-store"
-        elif request.path.endswith((".html", "/")):
+        elif request.path.endswith((".html", ".js", ".css", "/")):
             resp.headers["Cache-Control"] = "no-cache"
         return resp
 

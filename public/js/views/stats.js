@@ -2,6 +2,7 @@ import { S as ST, subjName, teacherName, numericGrades, absences, lessons, avgOf
 import { esc, f2, f1, median, DAYS, MONTHS, gcls } from "../util.js";
 import { bars, line, donut } from "../charts.js";
 import { monthlyTrend } from "./dashboard.js";
+import { openStory } from "../story.js";
 
 export function render(root) {
   const gs = numericGrades(), ab = absences();
@@ -42,7 +43,7 @@ export function render(root) {
   ls.filter((l) => !l.off).forEach((l) => { const d = (l.start.getDay() + 6) % 7; if (d < 5) perDay[d]++; });
 
   root.innerHTML = `
-    <div class="topbar"><div><h1>Statisztikák</h1><div class="sub">${gs.length} jegy alapján</div></div></div>
+    <div class="topbar"><div><h1>Statisztikák</h1><div class="sub">${gs.length} jegy alapján</div></div><button class="btn primary" id="story">📸 Story kép</button></div>
     <div class="grid g4 kp">
       <div class="card kpi"><div class="v">${f2(avg)}</div><div class="l">${ST.prefs.weighted !== false ? "Súlyozott" : "Egyszerű"} átlag</div><div class="d muted">egyszerű: ${f2(plain)}</div></div>
       <div class="card kpi"><div class="v">${f1(median(vals))}</div><div class="l">Medián</div><div class="d muted">leggyakoribb: ${mode.label}-es (${mode.value} db)</div></div>
@@ -65,4 +66,5 @@ export function render(root) {
         <div class="item"><span class="gr gt">Σ</span><div><b>Súlyozott/egyszerű különbség</b><div class="small muted">${f2(avg - plain)}</div></div></div>
       </div></div>
     </div>`;
+  root.querySelector("#story").onclick = openStory;
 }

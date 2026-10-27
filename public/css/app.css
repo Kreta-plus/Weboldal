@@ -306,3 +306,8 @@ details.cls-d>summary{cursor:pointer;font-weight:600;color:var(--muted);margin-b
 .quip{display:flex;gap:12px;align-items:center;margin-bottom:var(--gap);border-left:4px solid var(--accent)}
 .quip-ic{font-size:1.6rem}
 .quip-t{font-weight:600;font-size:1.02rem;line-height:1.35}
+
+.story-modal{width:min(900px,100%);max-height:calc(100vh - 32px);overflow:auto}
+.story-grid{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:start}
+.story-cv{height:min(68vh,640px);aspect-ratio:9/16;width:auto;border-radius:16px;border:1px solid var(--border);background:var(--surface2)}
+@media(max-width:800px){.story-grid{grid-template-columns:1fr}.story-cv{height:auto;width:min(100%,300px);margin:0 auto;display:block}}

@@ -1,6 +1,7 @@
 import { S as ST, subjName, teacherName, shownName, grades, numericGrades, lessons, homework, tests, absences, avgOf, bySubject, loadWeek, fillTestLessons } from "../state.js";
 import { esc, f2, gcls, fmtDate, fmtTime, relDay, d0, sameDay, subjColor, MONTHS, normLessons, mondayOf, addDays, iso } from "../util.js";
 import { tomorrowQuip } from "../funny.js";
+import { openStory } from "../story.js";
 
 const quipCache = {}; // naponta/óraszerkezetenként egy szöveg, hogy újrarajzoláskor ne változzon
 import { line, bars } from "../charts.js";
@@ -90,9 +91,10 @@ export function render(root) {
 
   root.innerHTML = `
     <div class="topbar"><div><h1>${hello}, ${esc(shownName())}! ${esc(ST.prefs.emoji || "")}</h1>
-      <div class="sub">${new Intl.DateTimeFormat("hu-HU", { weekday: "long", month: "long", day: "numeric" }).format(now)}${nextL ? ` · következő óra: <b>${esc(subjName(nextL.subject))}</b> ${fmtTime(nextL.start)}` : ""}</div></div></div>
+      <div class="sub">${new Intl.DateTimeFormat("hu-HU", { weekday: "long", month: "long", day: "numeric" }).format(now)}${nextL ? ` · következő óra: <b>${esc(subjName(nextL.subject))}</b> ${fmtTime(nextL.start)}` : ""}</div></div><button class="btn" id="story">📸 Story kép</button></div>
     <div id="quip"></div>
     <div class="grid" style="gap:var(--gap)">${kpis}<div class="grid g3">${cards.join("") || `<div class="card empty span2">Minden widget ki van kapcsolva. Beállítások → Kezdőlap.</div>`}</div></div>`;
+  root.querySelector("#story").onclick = openStory;
   if (ST.prefs.funnyQuips !== false) showQuip(root.querySelector("#quip"), today);
 }
 
