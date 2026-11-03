@@ -161,9 +161,10 @@ export async function loadBundle(force = false) {
   return r;
 }
 
-export async function loadWeek(monday, force = false) {
+// skipLocal: a böngésző saját tárát kihagyjuk, de a szerver gyorsítótára (és a KRÉTA-kímélés) marad
+export async function loadWeek(monday, force = false, skipLocal = false) {
   const key = U.iso(monday);
-  if (!force && S.weekCache[key]) return S.weekCache[key];
+  if (!force && !skipLocal && S.weekCache[key]) return S.weekCache[key];
   const r = await get(`/api/data/orarend?datumTol=${key}&datumIg=${U.iso(U.addDays(monday, 6))}${force ? "&force=1" : ""}`);
   S.weekCache[key] = r;
   return r;
