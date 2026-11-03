@@ -1,9 +1,9 @@
-package hu.kretaplusz.app.ui;
+package hu.zsirkreta.app.ui;
 
 import android.content.Context;
 import android.widget.LinearLayout;
 
-import hu.kretaplusz.app.MainActivity;
+import hu.zsirkreta.app.MainActivity;
 
 /**
  * Egy képernyő (nézet). A render() a kapott konténert tölti fel; adat- vagy beállításváltozáskor

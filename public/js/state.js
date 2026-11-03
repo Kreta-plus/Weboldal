@@ -151,12 +151,17 @@ export async function loadPrefs() {
 }
 
 // ---------- adatok ----------
+export const LABELS = { tanulo: "adatlap", jegyek: "jegyek", orarend: "órarend", mulasztasok: "hiányzások", hazi: "házi", szamonkeres: "számonkérések", feljegyzesek: "feljegyzések" };
+
+// r.changed: azok az adatfajták, amelyek tartalma tényleg megváltozott az előző betöltéshez képest (első betöltéskor üres)
 export async function loadBundle(force = false) {
   const r = await get("/api/data/bundle" + (force ? "?force=1" : ""));
-  S.errors = {};
+  const first = !Object.keys(S.raw).length;
+  S.errors = {}; r.changed = [];
   for (const [k, v] of Object.entries(r.items)) {
-    if (v.error) S.errors[k] = v.error;
-    else S.raw[k] = v;
+    if (v.error) { S.errors[k] = v.error; continue; }
+    if (!first && JSON.stringify(S.raw[k]?.data) !== JSON.stringify(v.data)) r.changed.push(k);
+    S.raw[k] = v;
   }
   return r;
 }
@@ -171,6 +176,7 @@ export async function loadWeek(monday, force = false, skipLocal = false) {
 }
 
 export function freshest() {
-  const ts = Object.values(S.raw).map((r) => r.meta?.fetchedAt).filter(Boolean);
+  // az adatlapot a frissítés nem kéri le újra (ritkán változik), ezért az nem számít bele
+  const ts = Object.entries(S.raw).filter(([k]) => k !== "tanulo").map(([, r]) => r.meta?.fetchedAt).filter(Boolean);
   return ts.length ? Math.min(...ts) : null;
 }

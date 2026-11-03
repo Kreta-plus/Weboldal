@@ -50,6 +50,20 @@ function wrap(c, text, x, y, max, lh, maxLines = 2) {
   return Math.min(lines.length, maxLines);
 }
 
+// a public/img/logo.svg rajza (64×64-es rácson); a „Kiemelő” témán sötét lapon sárga a Z
+function drawLogo(c, x, y, size, dark) {
+  c.save(); c.translate(x, y); c.scale(size / 64, size / 64);
+  rr(c, 0, 0, 64, 64, 16); c.fillStyle = dark ? INK : "#ffe14d"; c.fill();
+  c.strokeStyle = dark ? "#ffe14d" : INK; c.lineWidth = 5.5; c.lineCap = "round"; c.lineJoin = "round";
+  c.stroke(new Path2D("M11 21.5c6-.8 12-1 18.5-.5L11.5 43.5c6.5-.9 13-1 19.5-.5"));
+  c.translate(32.5, 42); c.rotate(Math.PI / 4);
+  c.fillStyle = "#b8175f"; c.fill(new Path2D("M-2 0h4l4-8h-12z"));
+  rr(c, -6, -31, 12, 23.5, 2); c.fillStyle = "#e0307e"; c.fill();
+  c.fillStyle = INK; c.fillRect(-6, -25, 12, 13);
+  c.fillStyle = "#ffe14d"; c.fillRect(-6, -20, 12, 3);
+  c.restore();
+}
+
 export function drawStory(canvas, o) {
   const c = canvas.getContext("2d"), acc = ST.prefs.accent || "#ffe14d";
   const th = { ...THEMES[o.theme] };
@@ -59,12 +73,8 @@ export function drawStory(canvas, o) {
   c.textAlign = "center"; c.textBaseline = "alphabetic";
 
   // logó + név (a story felső biztonsági sávja alatt)
-  rr(c, W / 2 - 78, 250, 156, 156, 48); c.fillStyle = o.theme === "accent" ? INK : "#ffe14d"; c.fill();
-  c.font = `700 80px ${DISPLAY}`; c.textAlign = "left";
-  const kw = c.measureText("K").width, pw = c.measureText("+").width, lx = W / 2 - (kw + pw) / 2;
-  c.fillStyle = o.theme === "accent" ? "#ffe14d" : INK; c.fillText("K", lx, 356); c.fillStyle = "#e0307e"; c.fillText("+", lx + kw, 356);
-  c.textAlign = "center";
-  c.fillStyle = th.text; c.font = `700 60px ${DISPLAY}`; c.fillText("KRÉTA Plusz", W / 2, 490);
+  drawLogo(c, W / 2 - 78, 250, 156, o.theme === "accent");
+  c.fillStyle = th.text; c.font = `700 60px ${DISPLAY}`; c.fillText("ZsírKréta", W / 2, 490);
 
   // fejléc
   c.fillStyle = th.sub; c.font = `600 42px ${FONT}`;
@@ -98,7 +108,7 @@ export function drawStory(canvas, o) {
 export function openStory() {
   const data = collect();
   if (!data.count) return alert("Még nincs jegy, amiből képet lehetne csinálni.");
-  const o = { theme: "night", name: "", footer: "Próbáld ki te is: KRÉTA Plusz", ...data, items: data.items };
+  const o = { theme: "night", name: "", footer: "Próbáld ki te is: ZsírKréta", ...data, items: data.items };
   const picked = new Set(data.items.filter((i) => i.on).map((i) => i.k));
   let useName = false;
   const bg = document.createElement("div");
@@ -129,7 +139,7 @@ export function openStory() {
   const blob = () => new Promise((res) => cv.toBlob(res, "image/png"));
   bg.querySelector("#st-dl").onclick = async () => {
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(await blob()); a.download = "kreta-plusz-story.png"; a.click();
+    a.href = URL.createObjectURL(await blob()); a.download = "zsirkreta-story.png"; a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   };
   const sh = bg.querySelector("#st-sh");
@@ -137,8 +147,8 @@ export function openStory() {
   if (canShareFiles()) {
     sh.hidden = false;
     sh.onclick = async () => {
-      const f = new File([await blob()], "kreta-plusz-story.png", { type: "image/png" });
-      try { await navigator.share({ files: [f], title: "KRÉTA Plusz" }); } catch {}
+      const f = new File([await blob()], "zsirkreta-story.png", { type: "image/png" });
+      try { await navigator.share({ files: [f], title: "ZsírKréta" }); } catch {}
     };
   }
   draw();

@@ -1,4 +1,4 @@
-package hu.kretaplusz.app.ui;
+package hu.zsirkreta.app.ui;
 
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -8,10 +8,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import hu.kretaplusz.app.MainActivity;
-import hu.kretaplusz.app.data.Models.Absence;
-import hu.kretaplusz.app.data.St;
-import hu.kretaplusz.app.util.Dt;
+import hu.zsirkreta.app.MainActivity;
+import hu.zsirkreta.app.data.Models.Absence;
+import hu.zsirkreta.app.data.St;
+import hu.zsirkreta.app.util.Dt;
 
 public final class AbsencesScreen extends Screen {
     private static String flt = "all";

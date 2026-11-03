@@ -7,7 +7,16 @@ DATA_DIR = Path(os.environ.get("KP_DATA", BASE_DIR / "data"))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 PUBLIC_DIR = BASE_DIR / "public"
 
-DB_PATH = DATA_DIR / "kreta_plusz.db"
+DB_PATH = DATA_DIR / "zsirkreta.db"
+# a régi (KRÉTA Plusz nevű) adatbázist átnevezzük, hogy a fiókok és beállítások megmaradjanak
+if not DB_PATH.exists() and (DATA_DIR / "kreta_plusz.db").exists():
+    try:
+        for ext in ("", "-wal", "-shm"):
+            old = DATA_DIR / f"kreta_plusz.db{ext}"
+            if old.exists():
+                old.rename(DATA_DIR / f"zsirkreta.db{ext}")
+    except OSError:  # egy még futó régi szerver fogja a fájlt: addig a régi néven használjuk
+        DB_PATH = DATA_DIR / "kreta_plusz.db"
 KEY_PATH = DATA_DIR / "secret.key"
 
 # --- KRÉTA ---

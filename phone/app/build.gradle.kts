@@ -3,13 +3,13 @@ plugins {
 }
 
 android {
-    namespace = "hu.kretaplusz.app"
+    namespace = "hu.zsirkreta.app"
     compileSdk {
         version = release(37)
     }
 
     defaultConfig {
-        applicationId = "hu.kretaplusz.app"
+        applicationId = "hu.zsirkreta.app"
         minSdk = 26
         targetSdk = 37
         versionCode = 1

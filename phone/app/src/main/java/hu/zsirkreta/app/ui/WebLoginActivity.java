@@ -1,4 +1,4 @@
-package hu.kretaplusz.app.ui;
+package hu.zsirkreta.app.ui;
 
 import android.annotation.SuppressLint;
 import android.content.Intent;
@@ -23,8 +23,8 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-import hu.kretaplusz.app.R;
-import hu.kretaplusz.app.data.Config;
+import hu.zsirkreta.app.R;
+import hu.zsirkreta.app.data.Config;
 
 /**
  * Belépés a KRÉTA saját oldalán, beépített böngészőben. Amikor a KRÉTA az engedélyezési kóddal
@@ -39,7 +39,7 @@ public class WebLoginActivity extends AppCompatActivity {
         super.onCreate(b);
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         boolean sysDark = (getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES;
-        Theme.apply(hu.kretaplusz.app.data.St.prefs, sysDark);
+        Theme.apply(hu.zsirkreta.app.data.St.prefs, sysDark);
         final String url = getIntent().getStringExtra("url");
         final String verifier = getIntent().getStringExtra("verifier");
 

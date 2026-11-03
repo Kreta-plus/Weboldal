@@ -205,7 +205,7 @@ export async function render(root) {
   root.querySelector("#exp").onclick = () => {
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([JSON.stringify(ST.prefs, null, 2)], { type: "application/json" }));
-    a.download = "kreta-plusz-beallitasok.json"; a.click();
+    a.download = "zsirkreta-beallitasok.json"; a.click();
   };
   root.querySelector("#imp").onchange = async (e) => {
     try { savePrefs(JSON.parse(await e.target.files[0].text())); toast("Importálva"); render(root); } catch { toast("Érvénytelen fájl"); }

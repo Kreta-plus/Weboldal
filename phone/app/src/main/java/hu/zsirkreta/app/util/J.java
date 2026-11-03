@@ -1,4 +1,4 @@
-package hu.kretaplusz.app.util;
+package hu.zsirkreta.app.util;
 
 import org.json.JSONArray;
 import org.json.JSONObject;

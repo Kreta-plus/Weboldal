@@ -19,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "KretaPlusz"
+rootProject.name = "ZsirKreta"
 include(":app")

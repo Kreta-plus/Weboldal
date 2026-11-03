@@ -2,9 +2,9 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "kreta-plusz",
+      "name": "zsirkreta",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-c", "from kreta_plusz import create_app; create_app().run(host='127.0.0.1', port=3005, threaded=True)"],
+      "runtimeArgs": ["-c", "from zsirkreta import create_app; create_app().run(host='127.0.0.1', port=3005, threaded=True)"],
       "port": 3005,
       "autoPort": false
     }

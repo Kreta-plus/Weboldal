@@ -1,4 +1,4 @@
-package hu.kretaplusz.app.ui;
+package hu.zsirkreta.app.ui;
 
 import android.app.Activity;
 import android.content.Context;
@@ -41,11 +41,11 @@ import com.google.android.material.snackbar.Snackbar;
 import java.util.List;
 import java.util.function.Consumer;
 
-import hu.kretaplusz.app.R;
-import hu.kretaplusz.app.data.Models.Grade;
-import hu.kretaplusz.app.data.St;
-import hu.kretaplusz.app.util.Async;
-import hu.kretaplusz.app.util.Dt;
+import hu.zsirkreta.app.R;
+import hu.zsirkreta.app.data.Models.Grade;
+import hu.zsirkreta.app.data.St;
+import hu.zsirkreta.app.util.Async;
+import hu.zsirkreta.app.util.Dt;
 
 /** A UI építőkockái. Minden szín és méret a futásidejű Theme-ből jön, így a téma váltása újrarajzolással érvényesül. */
 public final class Ui {

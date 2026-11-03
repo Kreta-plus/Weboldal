@@ -1,4 +1,4 @@
-package hu.kretaplusz.app.ui;
+package hu.zsirkreta.app.ui;
 
 import android.text.TextUtils;
 import android.widget.EditText;
@@ -8,8 +8,8 @@ import android.widget.TextView;
 import java.util.List;
 import java.util.Map;
 
-import hu.kretaplusz.app.MainActivity;
-import hu.kretaplusz.app.data.St;
+import hu.zsirkreta.app.MainActivity;
+import hu.zsirkreta.app.data.St;
 
 public final class NamesScreen extends Screen {
     public NamesScreen(MainActivity a) { super(a); }

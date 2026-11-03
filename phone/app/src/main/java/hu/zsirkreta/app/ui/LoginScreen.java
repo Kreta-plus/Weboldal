@@ -1,17 +1,17 @@
-package hu.kretaplusz.app.ui;
+package hu.zsirkreta.app.ui;
 
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Typeface;
-import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.text.InputType;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -23,11 +23,12 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import hu.kretaplusz.app.MainActivity;
-import hu.kretaplusz.app.data.Config;
-import hu.kretaplusz.app.data.Kreta;
-import hu.kretaplusz.app.data.Kreta.KretaError;
-import hu.kretaplusz.app.util.Async;
+import hu.zsirkreta.app.MainActivity;
+import hu.zsirkreta.app.R;
+import hu.zsirkreta.app.data.Config;
+import hu.zsirkreta.app.data.Kreta;
+import hu.zsirkreta.app.data.Kreta.KretaError;
+import hu.zsirkreta.app.util.Async;
 
 /** Belépés: űrlap, belépés a KRÉTA oldalán (beépített böngésző), cím beillesztése, teszt fiók, haladó beállítások. */
 public final class LoginScreen {
@@ -69,13 +70,10 @@ public final class LoginScreen {
         // hős blokk
         LinearLayout hero = Ui.vbox(act, 8);
         hero.setGravity(Gravity.CENTER_HORIZONTAL);
-        TextView logo = Ui.text(act, "K+", 30, Theme.onAccent, true);
-        logo.setGravity(Gravity.CENTER);
-        GradientDrawable lg = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{Theme.accent, Theme.accentStrong});
-        lg.setCornerRadius(Ui.dp(24));
-        logo.setBackground(lg);
+        ImageView logo = new ImageView(act);
+        logo.setImageResource(R.drawable.ic_logo);
         hero.addView(logo, Ui.lp(Ui.dp(76), Ui.dp(76)));
-        hero.addView(Ui.text(act, "KRÉTA Plusz", 28, Theme.text, true), Ui.margin(Ui.lp(Ui.WRAP, Ui.WRAP), 0, 6, 0, 0));
+        hero.addView(Ui.text(act, "ZsírKréta", 28, Theme.text, true), Ui.margin(Ui.lp(Ui.WRAP, Ui.WRAP), 0, 6, 0, 0));
         TextView tag = Ui.muted(act, "Jegyek, órarend, statisztikák, a saját neveiddel.");
         tag.setGravity(Gravity.CENTER);
         hero.addView(tag, Ui.lp(Ui.WRAP, Ui.WRAP));

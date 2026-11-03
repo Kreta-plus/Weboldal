@@ -1,14 +1,14 @@
-package hu.kretaplusz.app.ui;
+package hu.zsirkreta.app.ui;
 
 import android.widget.LinearLayout;
 
 import java.util.List;
 
-import hu.kretaplusz.app.MainActivity;
-import hu.kretaplusz.app.data.Models.Note;
-import hu.kretaplusz.app.data.St;
-import hu.kretaplusz.app.util.Dt;
-import hu.kretaplusz.app.util.Fmt;
+import hu.zsirkreta.app.MainActivity;
+import hu.zsirkreta.app.data.Models.Note;
+import hu.zsirkreta.app.data.St;
+import hu.zsirkreta.app.util.Dt;
+import hu.zsirkreta.app.util.Fmt;
 
 public final class NotesScreen extends Screen {
     public NotesScreen(MainActivity a) { super(a); }

@@ -1,4 +1,4 @@
-package hu.kretaplusz.app.ui;
+package hu.zsirkreta.app.ui;
 
 import android.content.Context;
 import android.text.TextUtils;
@@ -15,15 +15,15 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import hu.kretaplusz.app.MainActivity;
-import hu.kretaplusz.app.R;
-import hu.kretaplusz.app.data.Kreta.KretaError;
-import hu.kretaplusz.app.data.Models.Lesson;
-import hu.kretaplusz.app.data.Models.Raw;
-import hu.kretaplusz.app.data.Norm;
-import hu.kretaplusz.app.data.St;
-import hu.kretaplusz.app.util.Async;
-import hu.kretaplusz.app.util.Dt;
+import hu.zsirkreta.app.MainActivity;
+import hu.zsirkreta.app.R;
+import hu.zsirkreta.app.data.Kreta.KretaError;
+import hu.zsirkreta.app.data.Models.Lesson;
+import hu.zsirkreta.app.data.Models.Raw;
+import hu.zsirkreta.app.data.Norm;
+import hu.zsirkreta.app.data.St;
+import hu.zsirkreta.app.util.Async;
+import hu.zsirkreta.app.util.Dt;
 
 public final class TimetableScreen extends Screen {
     private static LocalDate monday = Dt.mondayOf(Dt.today());

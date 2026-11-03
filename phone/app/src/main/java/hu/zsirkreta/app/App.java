@@ -1,10 +1,10 @@
-package hu.kretaplusz.app;
+package hu.zsirkreta.app;
 
 import android.app.Application;
 
-import hu.kretaplusz.app.data.Config;
-import hu.kretaplusz.app.data.Store;
-import hu.kretaplusz.app.ui.Ui;
+import hu.zsirkreta.app.data.Config;
+import hu.zsirkreta.app.data.Store;
+import hu.zsirkreta.app.ui.Ui;
 
 public class App extends Application {
     @Override public void onCreate() {

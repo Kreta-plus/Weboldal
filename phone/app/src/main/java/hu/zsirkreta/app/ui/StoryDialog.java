@@ -1,4 +1,4 @@
-package hu.kretaplusz.app.ui;
+package hu.zsirkreta.app.ui;
 
 import android.content.ContentValues;
 import android.content.Context;
@@ -11,6 +11,7 @@ import android.graphics.Paint;
 import android.graphics.RectF;
 import android.graphics.Shader;
 import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.MediaStore;
@@ -20,6 +21,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import androidx.appcompat.content.res.AppCompatResources;
 import androidx.core.content.FileProvider;
 
 import java.io.File;
@@ -33,12 +35,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import hu.kretaplusz.app.MainActivity;
-import hu.kretaplusz.app.data.Models.Absence;
-import hu.kretaplusz.app.data.Models.Grade;
-import hu.kretaplusz.app.data.Models.SubjectAvg;
-import hu.kretaplusz.app.data.St;
-import hu.kretaplusz.app.util.Fmt;
+import hu.zsirkreta.app.MainActivity;
+import hu.zsirkreta.app.R;
+import hu.zsirkreta.app.data.Models.Absence;
+import hu.zsirkreta.app.data.Models.Grade;
+import hu.zsirkreta.app.data.Models.SubjectAvg;
+import hu.zsirkreta.app.data.St;
+import hu.zsirkreta.app.util.Fmt;
 
 /** Instagram story kép (1080×1920): amire büszke lehetsz + az alkalmazás logója. A kép a készüléken készül. */
 public final class StoryDialog {
@@ -134,7 +137,7 @@ public final class StoryDialog {
         c.drawRoundRect(new RectF(x, y, x + w, y + h), r, r, s);
     }
 
-    static void draw(Bitmap bmp, String themeKey, String name, String footer, Double avg, int count, List<Tile> items) {
+    static void draw(Context ctx, Bitmap bmp, String themeKey, String name, String footer, Double avg, int count, List<Tile> items) {
         Canvas c = new Canvas(bmp);
         Th th = theme(themeKey);
         int acc = Theme.accent;
@@ -152,13 +155,14 @@ public final class StoryDialog {
 
         // logó + név
         Paint lg = new Paint(Paint.ANTI_ALIAS_FLAG);
-        lg.setShader(new LinearGradient(W / 2f - 80, 250, W / 2f + 80, 410, acc, Theme.mix(acc, Color.WHITE, 0.35f), Shader.TileMode.CLAMP));
+        lg.setColor(0xFFFFE14D);
         lg.setShadowLayer(40, 0, 14, 0x4D000000);
-        c.drawRoundRect(new RectF(W / 2f - 80, 250, W / 2f + 80, 410), 48, 48, lg);
-        Paint k = paint(Color.WHITE, 84, true, Paint.Align.CENTER);
-        c.drawText("K+", W / 2f, 360, k);
+        c.drawRoundRect(new RectF(W / 2f - 78, 252, W / 2f + 78, 408), 36, 36, lg);
+        Drawable logo = AppCompatResources.getDrawable(ctx, R.drawable.ic_logo);
+        logo.setBounds(W / 2 - 80, 250, W / 2 + 80, 410);
+        logo.draw(c);
         Paint t1 = paint(th.text, 58, true, Paint.Align.CENTER);
-        c.drawText("KRÉTA Plusz", W / 2f, 490, t1);
+        c.drawText("ZsírKréta", W / 2f, 490, t1);
 
         Paint hd = paint(th.sub, 44, false, Paint.Align.CENTER);
         c.drawText(name.isEmpty() ? "Erre vagyok büszke" : name + " ezzel büszkélkedhet", W / 2f, 580, hd);
@@ -196,7 +200,7 @@ public final class StoryDialog {
         if (data.count == 0) { act.toast("Még nincs jegy, amiből képet lehetne csinálni."); return; }
 
         final String[] themeKey = {"accent"};
-        final String[] footer = {"Próbáld ki te is: KRÉTA Plusz"};
+        final String[] footer = {"Próbáld ki te is: ZsírKréta"};
         final boolean[] useName = {false};
         final Set<String> picked = new HashSet<>();
         for (Tile t : data.items) if (t.on) picked.add(t.key);
@@ -214,7 +218,7 @@ public final class StoryDialog {
         Runnable redraw = () -> {
             List<Tile> shown = data.items.stream().filter(t -> picked.contains(t.key)).limit(6).collect(Collectors.toList());
             bmp.eraseColor(Color.TRANSPARENT);
-            draw(bmp, themeKey[0], useName[0] ? St.shownName() : "", footer[0], data.avg, data.count, shown);
+            draw(act, bmp, themeKey[0], useName[0] ? St.shownName() : "", footer[0], data.avg, data.count, shown);
             preview.invalidate();
         };
 
@@ -263,9 +267,9 @@ public final class StoryDialog {
         if (Build.VERSION.SDK_INT < 29) { share(act, bmp); return null; }   // régi Androidon a megosztó menüből menthető
         try {
             ContentValues v = new ContentValues();
-            v.put(MediaStore.Images.Media.DISPLAY_NAME, "kreta-plusz-story-" + System.currentTimeMillis() + ".png");
+            v.put(MediaStore.Images.Media.DISPLAY_NAME, "zsirkreta-story-" + System.currentTimeMillis() + ".png");
             v.put(MediaStore.Images.Media.MIME_TYPE, "image/png");
-            v.put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/KRÉTA Plusz");
+            v.put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/ZsírKréta");
             Uri uri = act.getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, v);
             if (uri == null) throw new IllegalStateException("nem hozható létre a fájl");
             try (OutputStream os = act.getContentResolver().openOutputStream(uri)) {
@@ -281,15 +285,15 @@ public final class StoryDialog {
         try {
             File dir = new File(act.getCacheDir(), "share");
             dir.mkdirs();
-            File f = new File(dir, "kreta-plusz-story.png");
+            File f = new File(dir, "zsirkreta-story.png");
             try (FileOutputStream os = new FileOutputStream(f)) { bmp.compress(Bitmap.CompressFormat.PNG, 100, os); }
             Uri uri = FileProvider.getUriForFile(act, act.getPackageName() + ".files", f);
             Intent i = new Intent(Intent.ACTION_SEND);
             i.setType("image/png");
             i.putExtra(Intent.EXTRA_STREAM, uri);
-            i.putExtra(Intent.EXTRA_TITLE, "KRÉTA Plusz");
+            i.putExtra(Intent.EXTRA_TITLE, "ZsírKréta");
             i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            act.startActivity(Intent.createChooser(i, "KRÉTA Plusz story"));
+            act.startActivity(Intent.createChooser(i, "ZsírKréta story"));
         } catch (Exception e) {
             Ui.toast(act, "Megosztás sikertelen: " + e.getMessage());
         }

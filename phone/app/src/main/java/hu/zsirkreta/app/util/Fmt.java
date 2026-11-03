@@ -1,4 +1,4 @@
-package hu.kretaplusz.app.util;
+package hu.zsirkreta.app.util;
 
 import java.util.List;
 import java.util.Locale;

@@ -1,4 +1,4 @@
-package hu.kretaplusz.app.util;
+package hu.zsirkreta.app.util;
 
 import android.os.Handler;
 import android.os.Looper;
@@ -36,7 +36,7 @@ public final class Async {
         try {
             r.run();
         } catch (RuntimeException e) {
-            android.util.Log.e("KretaPlusz", "Visszahívási hiba", e);
+            android.util.Log.e("ZsirKreta", "Visszahívási hiba", e);
         }
     }
 

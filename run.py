@@ -1,11 +1,11 @@
-"""KRÉTA Plusz indítófájl.
+"""ZsírKréta indítófájl.
 
     pip install -r requirements.txt
     python run.py
 
 Aztán: http://localhost:3000
 """
-from kreta_plusz import create_app
+from zsirkreta import create_app
 
 app = create_app()
 

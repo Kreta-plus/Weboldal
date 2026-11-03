@@ -1,6 +1,6 @@
-# KRÉTA Plusz – telefonos (Android) alkalmazás
+# ZsírKréta – telefonos (Android) alkalmazás
 
-A `Weboldal/` mappában lévő KRÉTA Plusz webes alkalmazás natív, **Java** nyelvű Android változata.
+A `Weboldal/` mappában lévő ZsírKréta webes alkalmazás natív, **Java** nyelvű Android változata.
 Android Studióban nyisd meg ezt a mappát (`File → Open… → phone`), a Gradle-szinkron után futtatható.
 
 * minSdk 26 (Android 8.0), targetSdk/compileSdk 37, Java 17, AGP 9.4, Gradle 9.6

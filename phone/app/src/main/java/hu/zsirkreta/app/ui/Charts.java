@@ -1,4 +1,4 @@
-package hu.kretaplusz.app.ui;
+package hu.zsirkreta.app.ui;
 
 import android.animation.ValueAnimator;
 import android.content.Context;
@@ -21,7 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
-import hu.kretaplusz.app.util.Fmt;
+import hu.zsirkreta.app.util.Fmt;
 
 /** Kis diagramkönyvtár külső függőség nélkül (a webes charts.js megfelelője), belépő animációval. */
 public final class Charts {

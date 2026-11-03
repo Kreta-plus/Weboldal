@@ -1,4 +1,4 @@
-package hu.kretaplusz.app.ui;
+package hu.zsirkreta.app.ui;
 
 import android.app.DatePickerDialog;
 import android.view.Gravity;
@@ -11,11 +11,11 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-import hu.kretaplusz.app.MainActivity;
-import hu.kretaplusz.app.R;
-import hu.kretaplusz.app.data.Models.Plan;
-import hu.kretaplusz.app.data.St;
-import hu.kretaplusz.app.util.Dt;
+import hu.zsirkreta.app.MainActivity;
+import hu.zsirkreta.app.R;
+import hu.zsirkreta.app.data.Models.Plan;
+import hu.zsirkreta.app.data.St;
+import hu.zsirkreta.app.util.Dt;
 
 /** Saját házik és dolgozatok felírása – csak a készüléken, a KRÉTA-ba nem kerül be. */
 public final class PlannerScreen extends Screen {

@@ -3,7 +3,7 @@ import { esc } from "../util.js";
 
 export function renderLogin(root, onDone) {
   root.innerHTML = `<div class="login-wrap"><div class="card login">
-    <div class="hero"><div class="logo">K<b>+</b></div><h1>KRÉTA Plusz</h1><div class="muted">Jegyek, órarend, statisztikák, a saját neveiddel.</div></div>
+    <div class="hero"><img class="logo" src="/img/logo.svg" alt=""><h1>ZsírKréta</h1><div class="muted">Jegyek, órarend, statisztikák, a saját neveiddel.</div></div>
     <ol class="steps">
       <li class="on" data-step="1">
         <b>Lépj be a KRÉTA-ban</b>

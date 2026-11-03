@@ -1,4 +1,4 @@
-package hu.kretaplusz.app.ui;
+package hu.zsirkreta.app.ui;
 
 import android.content.Intent;
 import android.view.inputmethod.EditorInfo;
@@ -8,8 +8,8 @@ import android.widget.LinearLayout;
 import java.util.ArrayList;
 import java.util.List;
 
-import hu.kretaplusz.app.MainActivity;
-import hu.kretaplusz.app.data.St;
+import hu.zsirkreta.app.MainActivity;
+import hu.zsirkreta.app.data.St;
 
 /** Táska: mit kell vinni tantárgyanként (és minden órához). A „holnapi táska” teljes képernyős nézetet a PackActivity adja. */
 public final class PackScreen extends Screen {

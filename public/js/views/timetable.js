@@ -57,6 +57,9 @@ async function tick(root, my) {
 
 function stop() { clearTimeout(timer); timer = null; }
 
+// a főoldali frissítés új adatnál ezt hívja: ugyanaz a csendes frissítés, mint a percenkénti
+export const update = (root) => tick(root, gen);
+
 document.addEventListener("visibilitychange", () => {
   const root = document.getElementById("view");
   if (!document.hidden && timer && root) { const my = gen; stop(); tick(root, my); }

@@ -1,4 +1,4 @@
-package hu.kretaplusz.app.ui;
+package hu.zsirkreta.app.ui;
 
 import android.graphics.Canvas;
 import android.graphics.Paint;
@@ -19,27 +19,27 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import hu.kretaplusz.app.MainActivity;
-import hu.kretaplusz.app.data.Funny;
-import hu.kretaplusz.app.data.Models.Absence;
-import hu.kretaplusz.app.data.Models.Grade;
-import hu.kretaplusz.app.data.Models.Homework;
-import hu.kretaplusz.app.data.Models.Lesson;
-import hu.kretaplusz.app.data.Models.Raw;
-import hu.kretaplusz.app.data.Models.SubjectAvg;
-import hu.kretaplusz.app.data.Models.TestItem;
-import hu.kretaplusz.app.data.Norm;
-import hu.kretaplusz.app.data.St;
-import hu.kretaplusz.app.util.Async;
-import hu.kretaplusz.app.util.Dt;
-import hu.kretaplusz.app.util.Fmt;
+import hu.zsirkreta.app.MainActivity;
+import hu.zsirkreta.app.data.Funny;
+import hu.zsirkreta.app.data.Models.Absence;
+import hu.zsirkreta.app.data.Models.Grade;
+import hu.zsirkreta.app.data.Models.Homework;
+import hu.zsirkreta.app.data.Models.Lesson;
+import hu.zsirkreta.app.data.Models.Raw;
+import hu.zsirkreta.app.data.Models.SubjectAvg;
+import hu.zsirkreta.app.data.Models.TestItem;
+import hu.zsirkreta.app.data.Norm;
+import hu.zsirkreta.app.data.St;
+import hu.zsirkreta.app.util.Async;
+import hu.zsirkreta.app.util.Dt;
+import hu.zsirkreta.app.util.Fmt;
 
 public final class DashboardScreen extends Screen {
     private static final Map<String, String> QUIPS = new HashMap<>();   // naponta/óraszerkezetenként egy szöveg, hogy újrarajzoláskor ne változzon
 
     public DashboardScreen(MainActivity a) { super(a); }
 
-    @Override public String title() { return "KRÉTA Plusz"; }
+    @Override public String title() { return "ZsírKréta"; }
 
     /** Kumulált átlag hónapról hónapra (a diagram és a statisztika is ezt használja). */
     static List<Charts.Pt> monthlyTrend(List<Grade> list) {

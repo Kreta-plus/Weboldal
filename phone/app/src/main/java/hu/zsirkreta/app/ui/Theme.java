@@ -1,4 +1,4 @@
-package hu.kretaplusz.app.ui;
+package hu.zsirkreta.app.ui;
 
 import android.graphics.Color;
 
@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import hu.kretaplusz.app.data.Prefs;
+import hu.zsirkreta.app.data.Prefs;
 
 /**
  * Futásidejű téma: a webes app CSS-változóinak (--bg, --surface, --accent, --g1…--g5, --radius …) megfelelője.

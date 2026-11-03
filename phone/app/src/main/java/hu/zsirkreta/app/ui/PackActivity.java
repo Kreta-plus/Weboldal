@@ -1,4 +1,4 @@
-package hu.kretaplusz.app.ui;
+package hu.zsirkreta.app.ui;
 
 import android.os.Bundle;
 import android.view.Gravity;
@@ -29,15 +29,15 @@ import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import hu.kretaplusz.app.R;
-import hu.kretaplusz.app.data.Models.Homework;
-import hu.kretaplusz.app.data.Models.Lesson;
-import hu.kretaplusz.app.data.Models.Raw;
-import hu.kretaplusz.app.data.Norm;
-import hu.kretaplusz.app.data.St;
-import hu.kretaplusz.app.util.Async;
-import hu.kretaplusz.app.util.Dt;
-import hu.kretaplusz.app.util.Fmt;
+import hu.zsirkreta.app.R;
+import hu.zsirkreta.app.data.Models.Homework;
+import hu.zsirkreta.app.data.Models.Lesson;
+import hu.zsirkreta.app.data.Models.Raw;
+import hu.zsirkreta.app.data.Norm;
+import hu.zsirkreta.app.data.St;
+import hu.zsirkreta.app.util.Async;
+import hu.zsirkreta.app.util.Dt;
+import hu.zsirkreta.app.util.Fmt;
 
 /**
  * Holnapi táska teljes képernyőn: a következő tanítási nap óráihoz kiírja, mit kell bepakolni

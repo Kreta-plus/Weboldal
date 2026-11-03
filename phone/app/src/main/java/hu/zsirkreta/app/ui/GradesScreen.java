@@ -1,4 +1,4 @@
-package hu.kretaplusz.app.ui;
+package hu.zsirkreta.app.ui;
 
 import android.text.TextUtils;
 import android.view.Gravity;
@@ -16,13 +16,13 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import hu.kretaplusz.app.MainActivity;
-import hu.kretaplusz.app.R;
-import hu.kretaplusz.app.data.Models.Grade;
-import hu.kretaplusz.app.data.Models.SubjectAvg;
-import hu.kretaplusz.app.data.St;
-import hu.kretaplusz.app.util.Dt;
-import hu.kretaplusz.app.util.Fmt;
+import hu.zsirkreta.app.MainActivity;
+import hu.zsirkreta.app.R;
+import hu.zsirkreta.app.data.Models.Grade;
+import hu.zsirkreta.app.data.Models.SubjectAvg;
+import hu.zsirkreta.app.data.St;
+import hu.zsirkreta.app.util.Dt;
+import hu.zsirkreta.app.util.Fmt;
 
 public final class GradesScreen extends Screen {
     /** Kipróbálós (még nem létező) jegy – nem mentődik. */

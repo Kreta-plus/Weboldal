@@ -1,6 +1,6 @@
 import { get, post } from "./api.js";
 import * as St from "./state.js";
-import { S, loadPrefs, loadBundle, applyPrefs, shownName, freshest } from "./state.js";
+import { S, loadPrefs, loadBundle, applyPrefs, shownName, freshest, LABELS } from "./state.js";
 import { esc, ago, toast } from "./util.js";
 import { renderLogin } from "./views/login.js";
 
@@ -36,8 +36,11 @@ async function boot() {
   if (!me.loggedIn) return renderLogin(app, boot);
   S.user = me.user;
   await loadPrefs();
+  loaded = false;
   shell();
-  await refresh(false);
+  // előbb a tárolt adat (gyorsan kint van valami), utána rögtön friss a KRÉTA-ból, ha az elsőből nem az jött
+  const r = await refresh(false);
+  if (r && !r.refreshed) await refresh(true, { auto: true });
 }
 
 function showMsg(t) { app.innerHTML = `<div class="login-wrap"><div class="card empty">${esc(t)}</div></div>`; }
@@ -46,7 +49,7 @@ function shell() {
   const hash = location.hash.slice(1);
   current = VIEWS[hash] ? hash : S.prefs.startView || "dashboard";
   const link = (k, cls = "") => { const [l, ic] = VIEWS[k]; return `<a data-v="${k}" href="#${k}" class="${cls}"><span class="ic">${ic}</span>${l}</a>`; };
-  app.innerHTML = `<div class="shell"><aside class="side"><div class="brand"><i>K<b>+</b></i>KRÉTA Plusz</div>
+  app.innerHTML = `<div class="shell"><aside class="side"><div class="brand"><img src="/img/logo.svg" alt="">ZsírKréta</div>
     <nav class="side-nav" aria-label="Menü">${link("dashboard")}
       ${GROUPS.map(([id, title, keys]) => `<div class="grp ${closedGroups().has(id) ? "" : "open"}" data-g="${id}">
         <button class="grp-h" aria-expanded="${!closedGroups().has(id)}"><span>${title}</span><span class="chev" aria-hidden="true">›</span></button>
@@ -55,7 +58,8 @@ function shell() {
     <nav class="nav">${Object.keys(VIEWS).map((k) => link(k, PRIMARY.includes(k) ? "" : "sec")).join("")}
       <button class="more-btn" id="more" aria-expanded="false"><span class="ic">⋯</span>Továbbiak</button></nav>
     <div class="me"><div class="avatar">${esc(S.prefs.emoji || "🎓")}</div><div class="grow"><b>${esc(shownName())}</b><div class="small muted" id="fresh"></div></div>
-      <button class="btn sm" id="sync" title="Frissítés">⟳</button></div></aside>
+      <button class="btn sm" id="sync" title="Frissítés"><span>⟳</span></button></div></aside>
+    <div class="sync-pill" id="syncpill" hidden><span class="spin">⟳</span> Frissítés…</div>
     <div class="more-sheet" id="sheet" hidden>${Object.keys(VIEWS).filter((k) => !PRIMARY.includes(k)).map((k) => link(k)).join("")}</div>
     <main class="main" id="view"></main></div>`;
   document.getElementById("sync").onclick = () => refresh(true);
@@ -90,32 +94,102 @@ async function show() {
     view.innerHTML = `<div class="card empty">Hiba a megjelenítésben: ${esc(e.message)}</div>`;
     console.error(e);
   }
-  const f = freshest();
-  const el = document.getElementById("fresh");
-  if (el) el.textContent = f ? `frissítve ${ago(f)}` : "";
+  setStatus();
 }
 
-async function refresh(force) {
-  const btn = document.getElementById("sync");
-  if (btn) btn.disabled = true;
-  try {
-    S.weekCache = force ? {} : S.weekCache;
-    await loadBundle(force);
-    const errs = Object.keys(S.errors);
-    if (errs.length) toast(`Nem minden adat töltődött be (${errs.join(", ")})`);
-    else if (force) toast("Frissítve");
-  } catch (e) {
-    if (e.code !== "relogin" && e.code !== "auth") toast(e.message);
+// ---------- frissítés ----------
+// Percenként automatikusan (csak ha látszik az oldal), a gombbal kézzel is, de a kettő együtt is legfeljebb percenként:
+// a szerver megmondja, hány mp múlva lehet újra (wait), és 429 után mennyi a szünet (cooldown).
+const AUTO_MS = 60000;
+let loaded = false, syncing = false, nextAt = 0, autoAt = 0, autoTimer = null, note = "", lastErrs = "", pendingRender = false;
+const names = (keys) => keys.map((k) => LABELS[k] || k).join(", ");
+const secs = (t) => Math.max(1, Math.ceil((t - Date.now()) / 1000));
+
+async function refresh(force, { auto = false } = {}) {
+  if (syncing) return null;
+  if (force && Date.now() < nextAt) {
+    if (!auto) toast(`Túl gyakran frissítenél, ${secs(nextAt)} mp múlva lehet újra`);
+    return null;
   }
-  if (btn) btn.disabled = false;
-  if (document.getElementById("view")) show();
+  syncing = true; setStatus();
+  let r = null;
+  try {
+    r = await loadBundle(force);
+    note = r.cooldown ? "a KRÉTA lassít, kicsit várunk" : r.stale ? "a KRÉTA nem elérhető, régebbi adat" : "";
+    nextAt = Date.now() + (r.wait || 0) * 1000;
+    const errs = Object.keys(S.errors), errKey = errs.join();
+    if (errs.length && (!auto || errKey !== lastErrs)) toast(`Nem minden adat töltődött be (${names(errs)})`);
+    lastErrs = errKey;
+    if (r.changed.length) toast(`Frissítve, új adat: ${names(r.changed)}`);
+    else if (!auto && r.throttled) toast(`Túl gyakran frissítenél, ${secs(nextAt)} mp múlva lehet újra`);
+    else if (!auto && force && !errs.length) toast("Frissítve, nincs új adat");
+    if (force || r.changed.includes("orarend")) S.weekCache = {};
+  } catch (e) {
+    note = e.code === "net" ? "nincs kapcsolat a szerverrel" : "a frissítés nem sikerült";
+    if (e.code === "relogin" || e.code === "auth") { syncing = false; stopAuto(); return null; }
+    if (!auto) toast(e.message);
+  }
+  syncing = false;
+  if (!document.getElementById("view")) return r;
+  scheduleAuto(r);
+  if (!loaded) { loaded = true; show(); }
+  else if (r?.changed.length) rerender();
+  setStatus();
+  return r;
 }
+
+function scheduleAuto(r) {
+  clearTimeout(autoTimer);
+  const ms = Math.max(AUTO_MS, (r?.wait || 0) * 1000, (r?.cooldown || 0) * 1000) + 500 + Math.random() * 1500;
+  autoAt = Date.now() + ms;
+  autoTimer = setTimeout(autoTick, ms);
+}
+function stopAuto() { clearTimeout(autoTimer); autoTimer = null; autoAt = 0; }
+function autoTick() {
+  autoTimer = null;
+  if (!document.getElementById("view")) return stopAuto();
+  if (document.hidden || !navigator.onLine) return; // háttérben nem kérdezünk; visszatéréskor pótoljuk
+  refresh(true, { auto: true });
+}
+const catchUp = () => { if (!document.hidden && autoAt && !autoTimer && !syncing) refresh(true, { auto: true }); };
+document.addEventListener("visibilitychange", catchUp);
+window.addEventListener("online", catchUp);
+
+// Új adatnál az aktuális oldal csendben újrarajzolódik (töltőképernyő nélkül, a görgetés marad).
+// Ha épp írsz valamit az oldalon, megvárja, amíg kilépsz a mezőből.
+async function rerender() {
+  const view = document.getElementById("view");
+  if (!view) return;
+  const a = document.activeElement;
+  if (a && view.contains(a) && a.matches("input, textarea, select, [contenteditable]")) { pendingRender = true; return; }
+  pendingRender = false;
+  const y = scrollY;
+  try {
+    const m = await VIEWS[current][2]();
+    await (m.update ? m.update(view) : m.render(view));
+  } catch (e) { console.error(e); }
+  scrollTo(0, y);
+}
+document.addEventListener("focusout", () => setTimeout(() => pendingRender && rerender(), 0));
+
+function setStatus() {
+  const el = document.getElementById("fresh"), btn = document.getElementById("sync"), pill = document.getElementById("syncpill");
+  if (!el) return;
+  const f = freshest(), wait = Date.now() < nextAt;
+  el.textContent = syncing ? "Frissítés…" : [note || (f ? `frissítve ${ago(f)}` : ""), autoAt > Date.now() ? `újra ${secs(autoAt)} mp múlva` : ""].filter(Boolean).join(" · ");
+  btn.disabled = syncing || wait;
+  btn.classList.toggle("spin", syncing);
+  btn.title = syncing ? "Frissítés…" : wait ? `Frissítés ${secs(nextAt)} mp múlva lehet újra` : "Frissítés";
+  pill.hidden = !syncing;
+}
+setInterval(() => !document.hidden && setStatus(), 1000);
 
 window.addEventListener("hashchange", () => {
   const h = location.hash.slice(1);
   if (VIEWS[h] && document.getElementById("view")) { current = h; show(); }
 });
 window.addEventListener("kp:auth", () => {
+  stopAuto();
   if (!document.querySelector(".login-wrap")) {
     toast("Lejárt a belépés, jelentkezz be újra");
     setTimeout(() => renderLogin(app, boot), 600);

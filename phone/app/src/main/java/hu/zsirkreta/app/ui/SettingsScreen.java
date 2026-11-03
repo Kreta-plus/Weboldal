@@ -1,4 +1,4 @@
-package hu.kretaplusz.app.ui;
+package hu.zsirkreta.app.ui;
 
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -22,15 +22,15 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import hu.kretaplusz.app.MainActivity;
-import hu.kretaplusz.app.R;
-import hu.kretaplusz.app.data.Funny;
-import hu.kretaplusz.app.data.Models.Plan;
-import hu.kretaplusz.app.data.Prefs;
-import hu.kretaplusz.app.data.St;
-import hu.kretaplusz.app.data.Store;
-import hu.kretaplusz.app.util.Dt;
-import hu.kretaplusz.app.util.Fmt;
+import hu.zsirkreta.app.MainActivity;
+import hu.zsirkreta.app.R;
+import hu.zsirkreta.app.data.Funny;
+import hu.zsirkreta.app.data.Models.Plan;
+import hu.zsirkreta.app.data.Prefs;
+import hu.zsirkreta.app.data.St;
+import hu.zsirkreta.app.data.Store;
+import hu.zsirkreta.app.util.Dt;
+import hu.zsirkreta.app.util.Fmt;
 
 public final class SettingsScreen extends Screen {
     private static final String[] SWATCHES = {"#6c5ce7", "#2ecc8f", "#38bdf8", "#f43f5e", "#f59e0b", "#d946ef", "#14b8a6", "#ef4444"};
@@ -343,7 +343,7 @@ public final class SettingsScreen extends Screen {
             card.addView(it, Ui.lp(Ui.MATCH, Ui.WRAP));
         }
         LinearLayout row = Ui.hbox(c(), 10);
-        row.addView(Ui.button(c(), "Beállítások exportja", Ui.B_DEFAULT, () -> act.exportText("kreta-plusz-beallitasok.json", p.toJson().toString())), Ui.grow());
+        row.addView(Ui.button(c(), "Beállítások exportja", Ui.B_DEFAULT, () -> act.exportText("zsirkreta-beallitasok.json", p.toJson().toString())), Ui.grow());
         row.addView(Ui.button(c(), "Import", Ui.B_DEFAULT, () -> act.importText(text -> {
             try {
                 St.prefs = St.prefs.mergedWith(new JSONObject(text));
@@ -360,6 +360,6 @@ public final class SettingsScreen extends Screen {
         row2.addView(Ui.button(c(), "Fiók és adatok törlése", Ui.B_DANGER, () -> Ui.confirm(c(), "Fiók és adatok törlése",
                 "Biztosan törlöd a fiókodat és az összes mentett adatot (beállítások, nevek, saját házik, táska)? Ezt nem lehet visszavonni.", "Törlés", true, () -> act.logout(true))), Ui.grow());
         card.addView(row2, Ui.lp(Ui.MATCH, Ui.WRAP));
-        card.addView(Ui.small(c(), "KRÉTA Plusz " + versionName() + " · telefonos változat"), Ui.lp(Ui.MATCH, Ui.WRAP));
+        card.addView(Ui.small(c(), "ZsírKréta " + versionName() + " · telefonos változat"), Ui.lp(Ui.MATCH, Ui.WRAP));
     }
 }

@@ -1,4 +1,4 @@
-package hu.kretaplusz.app;
+package hu.zsirkreta.app;
 
 import android.animation.ObjectAnimator;
 import android.content.Intent;
@@ -31,27 +31,27 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import hu.kretaplusz.app.data.Kreta;
-import hu.kretaplusz.app.data.St;
-import hu.kretaplusz.app.data.Store;
-import hu.kretaplusz.app.ui.AbsencesScreen;
-import hu.kretaplusz.app.ui.DashboardScreen;
-import hu.kretaplusz.app.ui.GradesScreen;
-import hu.kretaplusz.app.ui.HomeworkScreen;
-import hu.kretaplusz.app.ui.LoginScreen;
-import hu.kretaplusz.app.ui.NamesScreen;
-import hu.kretaplusz.app.ui.NotesScreen;
-import hu.kretaplusz.app.ui.PackScreen;
-import hu.kretaplusz.app.ui.PlannerScreen;
-import hu.kretaplusz.app.ui.Screen;
-import hu.kretaplusz.app.ui.SettingsScreen;
-import hu.kretaplusz.app.ui.StatsScreen;
-import hu.kretaplusz.app.ui.Theme;
-import hu.kretaplusz.app.ui.TimetableScreen;
-import hu.kretaplusz.app.ui.Ui;
-import hu.kretaplusz.app.ui.WebLoginActivity;
-import hu.kretaplusz.app.util.Async;
-import hu.kretaplusz.app.util.Dt;
+import hu.zsirkreta.app.data.Kreta;
+import hu.zsirkreta.app.data.St;
+import hu.zsirkreta.app.data.Store;
+import hu.zsirkreta.app.ui.AbsencesScreen;
+import hu.zsirkreta.app.ui.DashboardScreen;
+import hu.zsirkreta.app.ui.GradesScreen;
+import hu.zsirkreta.app.ui.HomeworkScreen;
+import hu.zsirkreta.app.ui.LoginScreen;
+import hu.zsirkreta.app.ui.NamesScreen;
+import hu.zsirkreta.app.ui.NotesScreen;
+import hu.zsirkreta.app.ui.PackScreen;
+import hu.zsirkreta.app.ui.PlannerScreen;
+import hu.zsirkreta.app.ui.Screen;
+import hu.zsirkreta.app.ui.SettingsScreen;
+import hu.zsirkreta.app.ui.StatsScreen;
+import hu.zsirkreta.app.ui.Theme;
+import hu.zsirkreta.app.ui.TimetableScreen;
+import hu.zsirkreta.app.ui.Ui;
+import hu.zsirkreta.app.ui.WebLoginActivity;
+import hu.zsirkreta.app.util.Async;
+import hu.zsirkreta.app.util.Dt;
 
 /**
  * Az egyetlen fő activity: felső sáv, tartalom (húzásra frissítés), alsó navigáció. A nézeteket
@@ -389,7 +389,7 @@ public class MainActivity extends AppCompatActivity {
         current = key;
         screen = make(key);
         drawBottomBar();
-        titleView.setText(key.equals("dashboard") ? "KRÉTA Plusz" : LABELS[indexOf(key)]);
+        titleView.setText(key.equals("dashboard") ? "ZsírKréta" : LABELS[indexOf(key)]);
         draw();
         updateFresh();
         if (changed) scroll.scrollTo(0, 0);
@@ -413,7 +413,7 @@ public class MainActivity extends AppCompatActivity {
             LinearLayout card = Ui.card(this);
             card.addView(Ui.muted(this, "Hiba a megjelenítésben: " + e));
             content.addView(card, Ui.lp(Ui.MATCH, Ui.WRAP));
-            android.util.Log.e("KretaPlusz", "render", e);
+            android.util.Log.e("ZsirKreta", "render", e);
         }
     }
 

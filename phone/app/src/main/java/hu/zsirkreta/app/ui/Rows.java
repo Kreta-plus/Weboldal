@@ -1,4 +1,4 @@
-package hu.kretaplusz.app.ui;
+package hu.zsirkreta.app.ui;
 
 import android.content.Context;
 import android.graphics.Paint;
@@ -9,13 +9,13 @@ import android.widget.TextView;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 
-import hu.kretaplusz.app.data.Models.Grade;
-import hu.kretaplusz.app.data.Models.Homework;
-import hu.kretaplusz.app.data.Models.Lesson;
-import hu.kretaplusz.app.data.Models.TestItem;
-import hu.kretaplusz.app.data.St;
-import hu.kretaplusz.app.util.Dt;
-import hu.kretaplusz.app.util.Fmt;
+import hu.zsirkreta.app.data.Models.Grade;
+import hu.zsirkreta.app.data.Models.Homework;
+import hu.zsirkreta.app.data.Models.Lesson;
+import hu.zsirkreta.app.data.Models.TestItem;
+import hu.zsirkreta.app.data.St;
+import hu.zsirkreta.app.util.Dt;
+import hu.zsirkreta.app.util.Fmt;
 
 /** Több képernyőn is használt listasorok. */
 final class Rows {

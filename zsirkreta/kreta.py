@@ -2,7 +2,7 @@
 
 Alapelvek, hogy a KRÉTA szervere felé minél kevesebb és egyenletes forgalom menjen:
   * minden válasz gyorsítótárba kerül (TTL adatfajtánként),
-  * a "Frissítés" gomb is csak percenként egyszer hív valójában,
+  * a "Frissítés" gomb és az oldal percenkénti automatikus frissítése együtt is csak percenként hív,
   * felhasználónként soros hívások, köztük minimális szünettel (+ kis véletlen eltérés),
   * 429/403 után cooldown: addig csak a tárolt adatot szolgáljuk ki,
   * a token megújítása csak lejáratkor történik, a jelszót soha nem tároljuk.
@@ -254,6 +254,11 @@ def _access(uid, force_refresh=False):
 
 
 # ---------- udvarias lekérdezés ----------
+def cooldown_left(uid):
+    """Hány mp van még hátra a 429/403 utáni szünetből (0, ha nincs szünet)."""
+    return max(0.0, _cooldown.get(uid, 0) - time.time())
+
+
 def _cache_get(uid, ckey):
     return db.one("SELECT body, fetched_at FROM cache WHERE user_id=? AND ckey=?", (uid, ckey))
 
