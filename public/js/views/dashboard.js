@@ -1,5 +1,5 @@
 import { S as ST, subjName, teacherName, shownName, grades, numericGrades, lessons, homework, tests, absences, avgOf, bySubject, loadWeek, fillTestLessons } from "../state.js";
-import { esc, f2, gcls, fmtDate, fmtTime, relDay, d0, sameDay, subjColor, MONTHS, normLessons, mondayOf, addDays, iso } from "../util.js";
+import { esc, linkify, hwText, f2, gcls, fmtDate, fmtTime, relDay, d0, sameDay, subjColor, MONTHS, normLessons, mondayOf, addDays, iso } from "../util.js";
 import { tomorrowQuip } from "../funny.js";
 import { openStory } from "../story.js";
 
@@ -70,7 +70,7 @@ export function render(root) {
   if (widgets.has("homework")) cards.push(`<div class="card"><h3>Házi feladatok <small><a href="#homework">Mind</a></small></h3>
     ${hwOpen.length ? `<div class="list">${hwOpen.slice(0, 6).map((h) => `
       <div class="item"><span class="dot" style="background:${subjColor(h.subject)}"></span><div class="grow"><b>${esc(subjName(h.subject))}</b>
-      <div class="small muted" style="overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${esc(h.text.replace(/<[^>]+>/g, " "))}</div></div>
+      <div class="small muted" style="overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${linkify(hwText(h.text))}</div></div>
       <span class="chip ${h.due - today < 864e5 * 1.5 ? "warn" : ""}">${relDay(h.due)}</span></div>`).join("")}</div>` : `<div class="empty">Nincs függő házi 🙌</div>`}</div>`);
 
   if (widgets.has("tests")) cards.push(`<div class="card"><h3>Számonkérések</h3>

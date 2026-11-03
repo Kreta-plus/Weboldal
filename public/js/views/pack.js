@@ -1,12 +1,12 @@
 import { S as ST, subjName, allSubjects, loadWeek, savePrefs, homework, fillTestLessons } from "../state.js";
-import { esc, normLessons, mondayOf, addDays, d0, sameDay, iso, fmtTime, DAYS, subjColor } from "../util.js";
+import { esc, linkify, hwText, normLessons, mondayOf, addDays, d0, sameDay, iso, fmtTime, DAYS, subjColor } from "../util.js";
 
 
 // Az adott napra esedékes házik egy tantárgyból: KRÉTA-s és saját (manuális) is.
 const norm = (x) => String(x || "").trim().toLowerCase();
 function hwFor(subject, day) {
   const k = norm(subject);
-  const kreta = homework().filter((h) => !h.done && sameDay(h.due, day) && norm(h.subject) === k).map((h) => ({ text: h.text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(), own: !!h.own }));
+  const kreta = homework().filter((h) => !h.done && sameDay(h.due, day) && norm(h.subject) === k).map((h) => ({ text: hwText(h.text).replace(/\s+/g, " "), own: !!h.own }));
   return kreta.filter((h) => h.text);
 }
 
@@ -79,7 +79,7 @@ async function showFullscreen() {
   const chip = (key, label) => `<label class="chip pk-chk"><input type="checkbox" data-k="${esc(key)}" ${checked.has(key) ? "checked" : ""}> ${esc(label)}</label>`;
   const gearChips = (l) => { const g = gearOf(l.subject); return g.length ? g.map((x) => chip(l.id + "|" + x, x)).join("") : `<span class="small muted">nincs felszerelés megadva</span>`; };
   const head = (l) => `<span class="dot" style="background:${subjColor(l.subject)}"></span><b>${l.nr ? l.nr + ". " : ""}${esc(subjName(l.subject))}</b><span class="muted">${fmtTime(l.start)}${l.room ? " · " + esc(l.room) : ""}</span>`;
-  const hwBox = (l) => { const h = hwFor(l.subject, r.day); return h.length ? `<div class="pk-hw">${h.map((x) => `<div>📝 ${esc(x.text)}${x.own ? ` <span class="small muted">(saját)</span>` : ""}</div>`).join("")}</div>` : ""; };
+  const hwBox = (l) => { const h = hwFor(l.subject, r.day); return h.length ? `<div class="pk-hw">${h.map((x) => `<div>📝 ${linkify(x.text)}${x.own ? ` <span class="small muted">(saját)</span>` : ""}</div>`).join("")}</div>` : ""; };
   const lessonCard = (l) => `<div class="pk-les"><div class="pk-h">${head(l)}</div>${hwBox(l)}<div class="chips">${gearChips(l)}</div></div>`;
   const sumBox = () => { const sum = summary(r.lessons); return `<div class="pk-sum"><h3>Összesen be kell pakolni</h3>${sum.length ? sum.map((g) => chip("sum|" + g.name, g.name + (g.n > 1 ? ` ×${g.n}` : ""))).join("") : `<div class="small muted">Nincs felszerelés megadva</div>`}</div>`; };
 

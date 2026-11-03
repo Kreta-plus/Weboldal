@@ -8,6 +8,37 @@ export const isLight = (hex) => {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.35;
 };
 
+// KRÉTA-s HTML szöveg → sima szöveg; a <a href> linkek címe megmarad, hogy a linkify megtalálja
+export function hwText(raw) {
+  return String(raw ?? "")
+    .replace(/<br\s*\/?>|<\/p>|<\/div>|<\/li>/gi, "\n")
+    .replace(/<a\b[^>]*?href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi, (_, href, txt) => {
+      const t = txt.replace(/<[^>]+>/g, "").trim();
+      return t && t !== href && !href.includes(t) ? `${t} (${href})` : href;
+    })
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&")
+    .replace(/[ \t]+/g, " ").replace(/ *\n */g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+// szövegben lévő webcímek (https://…, www.…, vagy pl. quizz.englert.hu) kattintható linkké alakítása; a többi szöveg escape-elve
+const URL_RE = /\b(?:https?:\/\/[^\s<>"']+|www\.[^\s<>"']+|(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+(?:hu|com|org|net|eu|io|app|dev|edu|gov|info|me|co|uk|de|at|ro|sk|ly|gl|link|site|online|school|page)\b(?:\/[^\s<>"']*)?)/gi;
+export function linkify(text) {
+  const s = String(text ?? "");
+  let out = "", last = 0;
+  for (const m of s.matchAll(URL_RE)) {
+    let url = m[0];
+    const trail = url.match(/[.,;:!?)\]]+$/); // mondatvégi írásjel nem része a linknek
+    if (trail && !(trail[0].startsWith(")") && url.includes("("))) url = url.slice(0, -trail[0].length);
+    if (m.index > 0 && s[m.index - 1] === "@") continue; // e-mail cím domainje
+    out += esc(s.slice(last, m.index));
+    const href = /^https?:\/\//i.test(url) ? url : "https://" + url;
+    out += `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${esc(url)}</a>`;
+    last = m.index + url.length;
+  }
+  return out + esc(s.slice(last));
+}
+
 export const DAYS = ["Hétfő", "Kedd", "Szerda", "Csütörtök", "Péntek", "Szombat", "Vasárnap"];
 export const MONTHS = ["jan", "feb", "már", "ápr", "máj", "jún", "júl", "aug", "szep", "okt", "nov", "dec"];
 

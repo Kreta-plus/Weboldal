@@ -1,5 +1,5 @@
 import { S as ST, subjName, teacherName, homework, tests } from "../state.js";
-import { esc, d0, fmtFull, relDay, subjColor } from "../util.js";
+import { esc, linkify, hwText, d0, fmtFull, relDay, subjColor } from "../util.js";
 
 let tab = "open";
 const key = () => `kp_hw_done_${ST.user?.id}`;
@@ -17,7 +17,7 @@ export function render(root) {
       <div class="card"><div class="row"><input type="checkbox" class="chk" data-id="${esc(h.id)}" ${h.done ? "checked" : ""} style="width:20px;height:20px;accent-color:var(--accent)">
         <span class="dot" style="background:${subjColor(h.subject)}"></span><b class="grow">${esc(subjName(h.subject))}</b>
         <span class="chip ${h.due < today ? "bad" : h.due - today < 864e5 * 1.5 ? "warn" : ""}">${relDay(h.due)}</span></div>
-        <div style="margin:10px 0 6px;white-space:pre-wrap">${esc(h.text.replace(/<[^>]+>/g, " ").trim())}</div>
+        <div style="margin:10px 0 6px;white-space:pre-wrap">${linkify(hwText(h.text))}</div>
         <div class="small muted">${h.own ? "saját · " : esc(teacherName(h.teacher)) + " · feladva: " + fmtFull(h.given) + " · "}határidő: ${fmtFull(h.due)}</div></div>`).join("") || `<div class="card empty">Itt nincs semmi 🎉</div>`}</div>
       <div class="card"><h3>Közelgő számonkérések</h3>${ts.length ? `<div class="list">${ts.map((t) => `<div class="item"><span class="dot" style="background:${subjColor(t.subject)}"></span>
         <div class="grow"><b>${esc(subjName(t.subject))}</b><div class="small muted">${esc(t.kind || "számonkérés")}${t.topic ? " · " + esc(t.topic) : ""}</div></div><span class="chip warn">${relDay(t.date)}</span></div>`).join("")}</div>` : `<div class="empty">Nincs bejelentett számonkérés</div>`}</div></div>`;

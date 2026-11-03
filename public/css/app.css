@@ -63,21 +63,21 @@ a { color: var(--accent-strong); text-underline-offset: 3px; }
 .grow { flex: 1; min-width: 0; }
 .nowrap { white-space: nowrap; }
 
-/* ---------- elrendezés: keskeny ikonsáv, mint egy appban ---------- */
-.shell { display: grid; grid-template-columns: 96px 1fr; min-height: 100vh; }
+/* ---------- elrendezés: oldalsáv csoportokkal (asztalon), alsó fülsáv (telefonon) ---------- */
+.shell { display: grid; grid-template-columns: 244px 1fr; min-height: 100vh; }
 .side {
-  position: sticky; top: 0; height: 100vh; padding: 18px 8px 14px; display: flex; flex-direction: column; align-items: stretch; gap: 4px;
-  background: var(--bg2); overflow-y: auto; scrollbar-width: none;
+  position: sticky; top: 0; height: 100vh; padding: 18px 14px 12px; display: flex; flex-direction: column; gap: 4px;
+  background: var(--bg2); overflow-y: auto; scrollbar-width: thin;
 }
 .more-btn, .more-sheet { display: none; }
-.brand { display: flex; justify-content: center; padding: 0 0 18px; font-size: 0; } /* a sávban csak a logó látszik */
+.brand { display: flex; align-items: center; gap: 10px; padding: 0 8px 14px; font-family: var(--font-display); font-weight: 700; font-size: 1.2rem; }
 .brand i, .hero .logo {
   display: flex; align-items: center; justify-content: center; font-style: normal;
   font-family: var(--font-display); font-weight: 700; color: var(--ink); background: var(--hl-yellow);
 }
-.brand i { width: 44px; height: 44px; border-radius: 14px; font-size: 1.15rem; }
+.brand i { flex: none; width: 38px; height: 38px; border-radius: 12px; font-size: 1.05rem; }
 .brand i b, .hero .logo b { color: #e0307e; font-weight: 700; }
-.nav { display: grid; gap: 4px; }
+.nav { display: none; gap: 4px; } /* lapos menü: csak a telefonos alsó sávban */
 .nav a {
   display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 9px 2px 8px; border-radius: 14px;
   color: var(--muted); text-decoration: none; font-size: .6875rem; font-weight: 600; text-align: center; line-height: 1.2;
@@ -86,10 +86,29 @@ a { color: var(--accent-strong); text-underline-offset: 3px; }
 .nav a.on { color: var(--text); }
 .nav a span.ic { display: grid; place-items: center; width: 52px; height: 30px; border-radius: 999px; font-size: 1.15rem; }
 .nav a.on span.ic { background: var(--accent); }
-.side .me { margin-top: auto; padding: 10px 4px 0; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
-.side .me .grow { width: 100%; }
-.side .me b { display: block; font-size: .75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.side .me .small { font-size: .6875rem; }
+/* asztali menü: Kezdőlap, két lenyitható csoport, alul Nevek és Beállítások */
+.side-nav { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.side-nav a {
+  display: flex; align-items: center; gap: 12px; padding: 7px 12px; border-radius: 999px;
+  color: var(--muted); text-decoration: none; font-weight: 600; font-size: .9375rem;
+}
+.side-nav a:hover { color: var(--text); background: var(--surface); }
+.side-nav a.on { background: var(--accent); color: var(--on-accent); }
+.side-nav a span.ic { width: 22px; text-align: center; font-size: 1.05rem; }
+.grp { margin-top: 8px; }
+.grp-h {
+  width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 12px; margin-bottom: 2px;
+  background: none; border: 0; border-radius: 8px; color: var(--muted); font-size: .8125rem; font-weight: 700; cursor: pointer; text-align: left;
+}
+.grp-h:hover { color: var(--text); }
+.grp-h .chev { display: inline-block; font-size: 1.15rem; line-height: 1; transition: transform .2s; }
+.grp.open .grp-h .chev { transform: rotate(90deg); }
+.grp-b { display: none; flex-direction: column; gap: 2px; }
+.grp.open .grp-b { display: flex; }
+.side-foot { margin-top: auto; padding-top: 8px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 2px; }
+.side .me { margin-top: 8px; padding: 10px; border-radius: var(--r-inner); background: var(--surface); display: flex; align-items: center; gap: 10px; }
+.side .me b { display: block; font-size: .875rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side .me .small { font-size: .75rem; }
 .avatar { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-size: 1.25rem; background: var(--surface2); }
 .main { padding: 32px 40px 90px; max-width: 1240px; width: 100%; margin: 0 auto; }
 .topbar { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; margin-bottom: 24px; flex-wrap: wrap; }
@@ -301,7 +320,7 @@ details.cls-d > summary { cursor: pointer; font-weight: 600; color: var(--muted)
     padding: 6px 4px calc(8px + env(safe-area-inset-bottom)); overflow: hidden; gap: 0; width: 100%;
     background: var(--bg2); border-top: 1px solid var(--border);
   }
-  .side .brand, .side .me { display: none; }
+  .side .brand, .side .me, .side-nav { display: none; }
   .nav { display: flex; gap: 0; width: 100%; }
   .nav a.sec { display: none; }
   .nav a, .more-btn { flex: 1 1 0; min-width: 0; flex-direction: column; justify-content: center; align-items: center; gap: 3px; padding: 4px 2px; font-size: .6875rem; text-align: center; border-radius: 12px; }
@@ -365,18 +384,6 @@ details.cls-d > summary { cursor: pointer; font-weight: 600; color: var(--muted)
   .main { padding-left: 10px; padding-right: 10px; }
   .topbar h1 { font-size: 1.6rem; }
   .gr { min-width: 32px; height: 32px; font-size: 1rem; }
-}
-
-/* alacsony asztali ablak: tömörebb ikonsáv, hogy minden menüpont elférjen görgetés nélkül */
-@media (min-width: 801px) and (max-height: 820px) {
-  .side { padding-top: 12px; padding-bottom: 10px; }
-  .brand { padding-bottom: 8px; }
-  .brand i { width: 38px; height: 38px; }
-  .nav { gap: 1px; }
-  .nav a { padding: 4px 2px; gap: 1px; }
-  .nav a span.ic { height: 24px; font-size: 1.05rem; }
-  .side .me { padding-top: 6px; }
-  .side .me .grow { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

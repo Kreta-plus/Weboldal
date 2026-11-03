@@ -19,6 +19,14 @@ const VIEWS = {
   settings: ["Beállítások", "⚙️", () => import("./views/settings.js")],
 };
 
+// asztali oldalsáv: csoportok, lenyitható menüként; a Kezdőlap felül, a Nevek és a Beállítások alul külön
+const GROUPS = [
+  ["study", "Tanulmányok", ["grades", "stats", "absences", "notes"]],
+  ["daily", "Napi teendők", ["timetable", "homework", "planner", "pack"]],
+];
+const GROUP_KEY = "kp_nav_closed";
+const closedGroups = () => { try { return new Set(JSON.parse(localStorage.getItem(GROUP_KEY) || "[]")); } catch { return new Set(); } };
+
 const app = document.getElementById("app");
 let current = null;
 
@@ -39,6 +47,11 @@ function shell() {
   current = VIEWS[hash] ? hash : S.prefs.startView || "dashboard";
   const link = (k, cls = "") => { const [l, ic] = VIEWS[k]; return `<a data-v="${k}" href="#${k}" class="${cls}"><span class="ic">${ic}</span>${l}</a>`; };
   app.innerHTML = `<div class="shell"><aside class="side"><div class="brand"><i>K<b>+</b></i>KRÉTA Plusz</div>
+    <nav class="side-nav" aria-label="Menü">${link("dashboard")}
+      ${GROUPS.map(([id, title, keys]) => `<div class="grp ${closedGroups().has(id) ? "" : "open"}" data-g="${id}">
+        <button class="grp-h" aria-expanded="${!closedGroups().has(id)}"><span>${title}</span><span class="chev" aria-hidden="true">›</span></button>
+        <div class="grp-b">${keys.map((k) => link(k)).join("")}</div></div>`).join("")}
+      <div class="side-foot">${link("names")}${link("settings")}</div></nav>
     <nav class="nav">${Object.keys(VIEWS).map((k) => link(k, PRIMARY.includes(k) ? "" : "sec")).join("")}
       <button class="more-btn" id="more" aria-expanded="false"><span class="ic">⋯</span>Továbbiak</button></nav>
     <div class="me"><div class="avatar">${esc(S.prefs.emoji || "🎓")}</div><div class="grow"><b>${esc(shownName())}</b><div class="small muted" id="fresh"></div></div>
@@ -46,6 +59,12 @@ function shell() {
     <div class="more-sheet" id="sheet" hidden>${Object.keys(VIEWS).filter((k) => !PRIMARY.includes(k)).map((k) => link(k)).join("")}</div>
     <main class="main" id="view"></main></div>`;
   document.getElementById("sync").onclick = () => refresh(true);
+  document.querySelectorAll(".grp-h").forEach((b) => (b.onclick = () => {
+    const g = b.parentElement, open = !g.classList.contains("open"), closed = closedGroups();
+    g.classList.toggle("open", open); b.setAttribute("aria-expanded", open);
+    open ? closed.delete(g.dataset.g) : closed.add(g.dataset.g);
+    try { localStorage.setItem(GROUP_KEY, JSON.stringify([...closed])); } catch {}
+  }));
   const sheet = document.getElementById("sheet"), more = document.getElementById("more");
   const setSheet = (open) => { sheet.hidden = !open; more.setAttribute("aria-expanded", open); };
   more.onclick = (e) => { e.stopPropagation(); setSheet(sheet.hidden); };
@@ -56,7 +75,10 @@ function shell() {
 
 async function show() {
   const [, , loader] = VIEWS[current];
-  document.querySelectorAll(".nav a, .more-sheet a").forEach((a) => a.classList.toggle("on", a.dataset.v === current));
+  document.querySelectorAll(".nav a, .more-sheet a, .side-nav a").forEach((a) => a.classList.toggle("on", a.dataset.v === current));
+  // az aktuális oldalt tartalmazó csoport mindig nyitva van
+  document.querySelector(`.side-nav .grp-b a[data-v="${current}"]`)?.closest(".grp")?.classList.add("open");
+  document.querySelectorAll(".side-nav .grp").forEach((g) => g.querySelector(".grp-h").setAttribute("aria-expanded", g.classList.contains("open")));
   document.getElementById("more")?.classList.toggle("on", !PRIMARY.includes(current));
   const view = document.getElementById("view");
   if (!view) return;

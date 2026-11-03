@@ -1,5 +1,5 @@
 import { S as ST, subjName, allSubjects, savePrefs } from "../state.js";
-import { esc, iso, d0, fmtFull, relDay, subjColor } from "../util.js";
+import { esc, linkify, iso, d0, fmtFull, relDay, subjColor } from "../util.js";
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
@@ -11,7 +11,7 @@ export function render(root) {
   const opts = subs.map((s) => `<option value="${esc(s)}">${esc(subjName(s))}</option>`).join("");
   const when = (d) => { const x = d0(d + "T00:00"); return `<span class="chip ${x < today ? "bad" : x - today < 864e5 * 1.5 ? "warn" : ""}">${relDay(x)}</span>`; };
   const row = (kind, it, body) => `<div class="item"><span class="dot" style="background:${subjColor(it.subject)}"></span>
-    <div class="grow"><b>${esc(subjName(it.subject))}</b><div class="small muted" style="white-space:pre-wrap">${esc(body)}</div><div class="small muted">${fmtFull(it.date + "T00:00")}</div></div>
+    <div class="grow"><b>${esc(subjName(it.subject))}</b><div class="small muted" style="white-space:pre-wrap">${linkify(body)}</div><div class="small muted">${fmtFull(it.date + "T00:00")}</div></div>
     ${when(it.date)}<button class="btn sm danger del" data-k="${kind}" data-id="${esc(it.id)}">✕</button></div>`;
 
   root.innerHTML = `<div class="topbar"><div><h1>Tervező</h1><div class="sub">Saját házik és dolgozatok – csak nálad, a KRÉTA-ba nem kerül be.</div></div></div>
