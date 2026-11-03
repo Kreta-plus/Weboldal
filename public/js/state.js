@@ -10,6 +10,23 @@ export const S = {
   weekCache: {},  // órarend hetek
 };
 
+// Színtémák: [név, sötét előnézet háttér + kártya, világos előnézet háttér + kártya, hozzá illő kiemelő szín].
+// A valódi színek a CSS-ben vannak (html[data-palette]); a kiemelő szín független a témától, szabadon párosítható.
+export const PALETTES = {
+  desk: ["Íróasztal", "#221a15", "#3a2e26", "#e5e9f6", "#d3d9ee", "#ffe14d"],
+  ocean: ["Óceán", "#0f1a24", "#1f3140", "#dfedf5", "#cadfea", "#5cc8ff"],
+  forest: ["Erdő", "#141c16", "#26342b", "#e3ecdf", "#d0dfcc", "#45e3a0"],
+  grape: ["Szőlő", "#1b1626", "#302841", "#e9e4f4", "#ddd4ee", "#b79cff"],
+  rose: ["Rózsa", "#241519", "#3d262d", "#f5e4e8", "#efd3da", "#ff5fa2"],
+  slate: ["Grafit", "#1a1b1e", "#2e3035", "#e9ebee", "#d8dbe0", "#ff9f43"],
+  midnight: ["Éjfél", "#10122a", "#22264d", "#e3e6fa", "#d5d9f4", "#8a7dff"],
+  sunset: ["Naplemente", "#26160f", "#42291e", "#f8e5d9", "#f1d5c4", "#ff7a59"],
+  teal: ["Menta", "#0f1f1e", "#1f3836", "#dff0ed", "#c9e3df", "#00d1c1"],
+  sand: ["Homok", "#1f1c14", "#353025", "#f1ebdb", "#e6dcc4", "#e8c468"],
+  ice: ["Jég", "#1c2230", "#2e384c", "#e3e9f1", "#d3dce8", "#88c0d0"],
+  neon: ["Neon", "#140d1f", "#2a1c42", "#f0e2f9", "#e5d0f2", "#ff3df0"],
+};
+
 export const subjName = (n) => S.prefs.subjectNames?.[n] || n;
 export const teacherName = (n) => (n ? S.prefs.teacherNames?.[n] || n : "");
 export const shownName = () => S.prefs.nickname || S.prefs.displayName || S.raw.tanulo?.data?.Nev?.split(" ").slice(-1)[0] || "Diák";
@@ -97,14 +114,16 @@ export function allTeachers() {
 }
 
 // ---------- beállítások ----------
-let timer;
+let timer, rev = 0;
 export function savePrefs(patch, { silent = true } = {}) {
   Object.assign(S.prefs, patch);
   applyPrefs();
+  const my = ++rev;
   clearTimeout(timer);
   timer = setTimeout(async () => {
     try {
-      S.prefs = await put("/api/prefs", S.prefs);
+      const saved = await put("/api/prefs", S.prefs);
+      if (my === rev) S.prefs = saved; // ha közben újabb változás jött, a régi válasz nem írhatja felül (az újat a saját mentése küldi)
       if (!silent) U.toast("Mentve");
     } catch (e) { U.toast("Mentés sikertelen: " + e.message); }
   }, 450);
@@ -114,12 +133,16 @@ export function applyPrefs() {
   const p = S.prefs, root = document.documentElement;
   const dark = matchMedia("(prefers-color-scheme: dark)").matches;
   root.dataset.theme = p.theme === "auto" ? (dark ? "dark" : "light") : p.theme || "dark";
+  root.dataset.palette = PALETTES[p.palette] ? p.palette : "desk";
+  root.dataset.bg = p.bgStyle || "flat";
+  root.dataset.cards = p.cardStyle || "fill";
   root.dataset.density = p.density || "normal";
   root.style.setProperty("--accent", p.accent || "#ffe14d");
   root.style.setProperty("--on-accent", U.isLight(p.accent || "#ffe14d") ? "#1d1510" : "#ffffff"); // olvasható szöveg a kiemelő színen
   root.style.setProperty("--fs", p.fontScale || 1);
   root.style.setProperty("--radius", (p.radius ?? 16) + "px");
   document.getElementById("user-css").textContent = p.customCss || "";
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", getComputedStyle(root).getPropertyValue("--bg").trim()); // böngészősáv színe
 }
 
 export async function loadPrefs() {

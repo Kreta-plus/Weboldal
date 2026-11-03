@@ -1,9 +1,12 @@
-import { S as ST, savePrefs, allSubjects, subjName } from "../state.js";
+import { S as ST, savePrefs, allSubjects, subjName, PALETTES } from "../state.js";
 import { get, post } from "../api.js";
 import { esc, toast, ago, iso } from "../util.js";
 import { randomDisclaimer } from "../funny.js";
 
-const SWATCHES = ["#ffe14d", "#ff5fa2", "#45e3a0", "#5cc8ff", "#ff9f43", "#b79cff", "#c6f25c", "#3d5cff"]; // szövegkiemelő színek
+const SWATCHES = ["#ffe14d", "#e8c468", "#ff9f43", "#ff7a59", "#ff4d4d", "#ff5fa2", "#ff3df0", "#b79cff",
+  "#8a7dff", "#3d5cff", "#5cc8ff", "#88c0d0", "#00d1c1", "#45e3a0", "#c6f25c", "#ffffff"]; // szövegkiemelő színek
+const BG_STYLES = [["flat", "Egyszínű"], ["glow", "Ragyogás"], ["dots", "Pöttyös"], ["grid", "Kockás füzet"]];
+const CARD_STYLES = [["fill", "Kitöltött"], ["outline", "Keretes"], ["glass", "Üveg"]];
 const WIDGETS = { avg: "Összesítő számok", next: "Mai órák", grades: "Friss jegyek", homework: "Házik", tests: "Számonkérések", absences: "Hiányzások", trend: "Átlag-diagram", subjects: "Tantárgyi átlagok" };
 const CSS_PRESETS = {
   "Üveg": ".card{backdrop-filter:blur(12px);background:color-mix(in srgb,var(--surface) 65%,transparent)}",
@@ -79,6 +82,8 @@ export async function render(root) {
   let sessions = [];
   try { sessions = await get("/api/auth/sessions"); } catch {}
   const subs = allSubjects();
+  const pal = PALETTES[p.palette] ? p.palette : "desk";
+  const lightPv = document.documentElement.dataset.theme === "light"; // a téma-előnézet a mostani módhoz igazodik
   const row = (label, desc, control, wide = false) => `<div class="set-row ${wide ? "wide" : ""}"><div class="set-l"><b>${label}</b>${desc ? `<div class="small muted">${desc}</div>` : ""}</div><div class="set-c">${control}</div></div>`;
   const toggle = (id, on, cls = "", data = "") => `<label class="switch"><input type="checkbox" ${id ? `id="${id}"` : ""} class="${cls}" ${data} ${on ? "checked" : ""}><span class="sr">be/ki</span></label>`;
   const sec = (k, html) => `<section class="set-sec card" data-sec="${k}" ${section === k ? "" : "hidden"}>${html}</section>`;
@@ -89,11 +94,16 @@ export async function render(root) {
     <div class="set-body">
     ${sec("look", `<h3>Megjelenés</h3>
       ${row("Téma", "Az Auto a telefonod vagy géped beállítását követi.", `<div class="seg" data-seg="theme">${[["auto", "Auto"], ["dark", "Sötét"], ["light", "Világos"], ["amoled", "AMOLED"]].map(([k, l]) => `<button data-v="${k}" class="${p.theme === k ? "on" : ""}">${l}</button>`).join("")}</div>`)}
-      ${row("Kiemelő szín", "Gombok, aktív menüpont és kiemelések színe.", `<div class="row wrap">${SWATCHES.map((c) => `<button class="btn sm sw" data-c="${c}" title="${c}" style="background:${c};width:30px;height:30px;padding:0;border-radius:50%;${p.accent === c ? "outline:3px solid var(--text);outline-offset:2px" : ""}"></button>`).join("")}
-        <input type="color" id="acc" value="${p.accent}" title="Saját szín" style="width:40px;height:34px;border:0;background:none;cursor:pointer"></div>`)}
+      ${row("Színtéma", "A háttér és a kártyák színe. A kiemelő színt nem változtatja meg, így bármelyik témához bármilyen kiemelő szín párosítható.", `<div class="pal-grid">${Object.entries(PALETTES).map(([k, [l, dbg, dsf, lbg, lsf]]) => `<button class="pal ${pal === k ? "on" : ""}" data-p="${k}" aria-pressed="${pal === k}"><span class="pal-pv" style="background:${lightPv ? lbg : dbg}"><i style="background:${lightPv ? lsf : dsf}"></i><i></i></span>${l}</button>`).join("")}</div>
+        <div class="row wrap" style="margin-top:10px"><button class="btn sm" id="rnd">🎲 Véletlen párosítás</button></div>`, true)}
+      ${row("Kiemelő szín", "Gombok, aktív menüpont és kiemelések színe. Független a színtémától.", `<div class="row wrap">${SWATCHES.map((c) => `<button class="btn sm sw" data-c="${c}" title="${c}" style="background:${c};width:30px;height:30px;padding:0;border-radius:50%;box-shadow:inset 0 0 0 1px var(--border);${p.accent === c ? "outline:3px solid var(--text);outline-offset:2px" : ""}"></button>`).join("")}
+        <input type="color" id="acc" value="${p.accent}" title="Saját szín" style="width:40px;height:34px;border:0;background:none;cursor:pointer">
+        <button class="btn sm" id="palacc" title="A(z) ${PALETTES[pal][0]} témához ajánlott szín"><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${PALETTES[pal][5]}"></span> Témához illő</button></div>`, true)}
+      ${row("Háttér", "Minta vagy ragyogás a háttérben, a kiemelő szín árnyalatával.", `<div class="seg" data-seg="bgStyle">${BG_STYLES.map(([k, l]) => `<button data-v="${k}" class="${(p.bgStyle || "flat") === k ? "on" : ""}">${l}</button>`).join("")}</div>`)}
+      ${row("Kártyák", "A tartalmat tartó dobozok stílusa. Az Üveg a Ragyogás vagy minta háttérrel mutat a legjobban.", `<div class="seg" data-seg="cardStyle">${CARD_STYLES.map(([k, l]) => `<button data-v="${k}" class="${(p.cardStyle || "fill") === k ? "on" : ""}">${l}</button>`).join("")}</div>`)}
       ${row("Sűrűség", "Mennyi hely legyen az elemek között.", `<div class="seg" data-seg="density">${[["compact", "Tömör"], ["normal", "Normál"], ["cozy", "Tágas"]].map(([k, l]) => `<button data-v="${k}" class="${p.density === k ? "on" : ""}">${l}</button>`).join("")}</div>`)}
-      ${row(`Betűméret <span class="muted">${Math.round(p.fontScale * 100)}%</span>`, "", `<input type="range" id="fs" min="0.85" max="1.3" step="0.05" value="${p.fontScale}">`)}
-      ${row(`Lekerekítés <span class="muted">${p.radius} px</span>`, "A lapok és gombok sarkai.", `<input type="range" id="rd" min="0" max="28" step="1" value="${p.radius}">`)}`)}
+      ${row(`Betűméret <span class="muted" id="fsv">${Math.round(p.fontScale * 100)}%</span>`, "", `<input type="range" id="fs" min="0.85" max="1.3" step="0.05" value="${p.fontScale}">`)}
+      ${row(`Lekerekítés <span class="muted" id="rdv">${p.radius} px</span>`, "A lapok és gombok sarkai.", `<input type="range" id="rd" min="0" max="28" step="1" value="${p.radius}">`)}`)}
 
     ${sec("home", `<h3>Kezdőlap</h3>
       ${row("Kezdőoldal", "Ez nyílik meg, amikor belépsz.", `<select class="input" id="sv">${[["dashboard", "Kezdőlap"], ["grades", "Jegyek"], ["stats", "Statisztikák"], ["timetable", "Órarend"], ["homework", "Házi"]].map(([k, l]) => `<option value="${k}" ${p.startView === k ? "selected" : ""}>${l}</option>`).join("")}</select>`)}
@@ -132,10 +142,18 @@ export async function render(root) {
     root.querySelectorAll(".set-sec").forEach((x) => (x.hidden = x.dataset.sec !== section));
   }));
   root.querySelectorAll("[data-seg]").forEach((seg) => seg.querySelectorAll("button").forEach((b) => (b.onclick = () => { savePrefs({ [seg.dataset.seg]: b.dataset.v }); render(root); })));
+  root.querySelectorAll(".pal").forEach((b) => (b.onclick = () => { savePrefs({ palette: b.dataset.p }); render(root); }));
+  root.querySelector("#palacc").onclick = () => { savePrefs({ accent: PALETTES[pal][5] }); render(root); };
+  root.querySelector("#rnd").onclick = () => {
+    const pick = (a) => a[Math.floor(Math.random() * a.length)];
+    savePrefs({ palette: pick(Object.keys(PALETTES)), accent: pick(SWATCHES) });
+    render(root);
+  };
   root.querySelectorAll(".sw").forEach((b) => (b.onclick = () => { savePrefs({ accent: b.dataset.c }); render(root); }));
   root.querySelector("#acc").oninput = (e) => savePrefs({ accent: e.target.value });
-  root.querySelector("#fs").oninput = (e) => savePrefs({ fontScale: parseFloat(e.target.value) });
-  root.querySelector("#rd").oninput = (e) => savePrefs({ radius: parseInt(e.target.value) });
+  // a csúszka mellett kiírt érték húzás közben is frissül
+  root.querySelector("#fs").oninput = (e) => { const v = parseFloat(e.target.value); root.querySelector("#fsv").textContent = Math.round(v * 100) + "%"; savePrefs({ fontScale: v }); };
+  root.querySelector("#rd").oninput = (e) => { const v = parseInt(e.target.value); root.querySelector("#rdv").textContent = v + " px"; savePrefs({ radius: v }); };
   root.querySelector("#sv").onchange = (e) => savePrefs({ startView: e.target.value });
   root.querySelector("#fq").onchange = (e) => savePrefs({ funnyQuips: e.target.checked });
   root.querySelector("#wt").onchange = (e) => savePrefs({ weighted: e.target.checked });

@@ -44,6 +44,68 @@ html[data-theme="light"] {
   --g5: #17b878; --g4: #2aa7e8; --g3: #e8bf00; --g2: #f08a1c; --g1: #f0478d;
   color-scheme: light;
 }
+
+/* Színtémák: a fenti „Íróasztal” az alap; ezek csak a háttér- és felületszíneket cserélik, a sötét/világos/AMOLED mód megmarad.
+   html[data-palette] + html[data-theme] erősebb szelektor, ezért felülírja az alap blokkot. */
+/* Óceán: mély tengerkék */
+html[data-palette="ocean"][data-theme="dark"]   { --bg: #0f1a24; --bg2: #0b141c; --surface: #16242f; --surface2: #1f3140; --border: #2b4255; --text: #e8f2f8; --muted: #94acbd; }
+html[data-palette="ocean"][data-theme="amoled"] { --surface: #0a1218; --surface2: #111c25; --border: #1f2e3a; --text: #e8f2f8; --muted: #8aa1b2; }
+html[data-palette="ocean"][data-theme="light"]  { --bg: #eaf4f9; --bg2: #dfedf5; --surface: #ffffff; --surface2: #edf5f9; --border: #cadfea; --text: #0e2230; --muted: #4f6b7e; }
+/* Erdő: sötét fenyőzöld */
+html[data-palette="forest"][data-theme="dark"]   { --bg: #141c16; --bg2: #0f1611; --surface: #1c2720; --surface2: #26342b; --border: #34463a; --text: #eef4ec; --muted: #a3b5a6; }
+html[data-palette="forest"][data-theme="amoled"] { --surface: #0b120d; --surface2: #121b15; --border: #22302a; --text: #eef4ec; --muted: #95a898; }
+html[data-palette="forest"][data-theme="light"]  { --bg: #eef4ec; --bg2: #e3ecdf; --surface: #ffffff; --surface2: #eff5ed; --border: #d0dfcc; --text: #14261a; --muted: #587060; }
+/* Szőlő: éjszakai lila */
+html[data-palette="grape"][data-theme="dark"]   { --bg: #1b1626; --bg2: #15111e; --surface: #241e33; --surface2: #302841; --border: #3f3554; --text: #f1edf8; --muted: #ab9fc4; }
+html[data-palette="grape"][data-theme="amoled"] { --surface: #100c16; --surface2: #18121f; --border: #2a2236; --text: #f1edf8; --muted: #9d92b4; }
+html[data-palette="grape"][data-theme="light"]  { --bg: #f3f0fa; --bg2: #e9e4f4; --surface: #ffffff; --surface2: #f3effa; --border: #ddd4ee; --text: #1f1633; --muted: #65588a; }
+/* Rózsa: bordós, meleg rózsaszín */
+html[data-palette="rose"][data-theme="dark"]   { --bg: #241519; --bg2: #1c1013; --surface: #301d22; --surface2: #3d262d; --border: #50333b; --text: #faeef0; --muted: #c09ea6; }
+html[data-palette="rose"][data-theme="amoled"] { --surface: #140b0d; --surface2: #1d1114; --border: #33212a; --text: #faeef0; --muted: #b0939a; }
+html[data-palette="rose"][data-theme="light"]  { --bg: #fbf0f2; --bg2: #f5e4e8; --surface: #ffffff; --surface2: #fbf1f3; --border: #efd3da; --text: #33161e; --muted: #8a5a66; }
+/* Grafit: semleges szürke */
+html[data-palette="slate"][data-theme="dark"]   { --bg: #1a1b1e; --bg2: #141517; --surface: #232428; --surface2: #2e3035; --border: #3d3f45; --text: #f0f1f3; --muted: #a2a6ae; }
+html[data-palette="slate"][data-theme="amoled"] { --surface: #0e0f10; --surface2: #16171a; --border: #26282c; --text: #f0f1f3; --muted: #969aa2; }
+html[data-palette="slate"][data-theme="light"]  { --bg: #f3f4f6; --bg2: #e9ebee; --surface: #ffffff; --surface2: #f3f4f6; --border: #d8dbe0; --text: #17191d; --muted: #5c626c; }
+
+/* Éjfél: indigó éjszaka */
+html[data-palette="midnight"][data-theme="dark"]   { --bg: #10122a; --bg2: #0c0e21; --surface: #181b3a; --surface2: #22264d; --border: #2f3463; --text: #eceeff; --muted: #9ca1d4; }
+html[data-palette="midnight"][data-theme="amoled"] { --surface: #0a0b1a; --surface2: #12142a; --border: #22264a; --text: #eceeff; --muted: #8f94c4; }
+html[data-palette="midnight"][data-theme="light"]  { --bg: #eef0fd; --bg2: #e3e6fa; --surface: #ffffff; --surface2: #f0f2fd; --border: #d5d9f4; --text: #161a3d; --muted: #5d6396; }
+/* Naplemente: égetett narancs */
+html[data-palette="sunset"][data-theme="dark"]   { --bg: #26160f; --bg2: #1d100b; --surface: #331f16; --surface2: #42291e; --border: #573729; --text: #fff0e8; --muted: #c9a594; }
+html[data-palette="sunset"][data-theme="amoled"] { --surface: #150c08; --surface2: #1f120c; --border: #3a251b; --text: #fff0e8; --muted: #b8988a; }
+html[data-palette="sunset"][data-theme="light"]  { --bg: #fdf1ea; --bg2: #f8e5d9; --surface: #ffffff; --surface2: #fdf2ec; --border: #f1d5c4; --text: #3a1d10; --muted: #8f5f49; }
+/* Menta: kékeszöld */
+html[data-palette="teal"][data-theme="dark"]   { --bg: #0f1f1e; --bg2: #0b1817; --surface: #162a29; --surface2: #1f3836; --border: #2b4a47; --text: #e6f7f5; --muted: #93b8b4; }
+html[data-palette="teal"][data-theme="amoled"] { --surface: #091312; --surface2: #0f1c1b; --border: #1e302e; --text: #e6f7f5; --muted: #86aaa6; }
+html[data-palette="teal"][data-theme="light"]  { --bg: #ebf7f5; --bg2: #dff0ed; --surface: #ffffff; --surface2: #edf7f5; --border: #c9e3df; --text: #0f2826; --muted: #4d736f; }
+/* Homok: meleg bézs, olíva */
+html[data-palette="sand"][data-theme="dark"]   { --bg: #1f1c14; --bg2: #18150f; --surface: #29251b; --surface2: #353025; --border: #463f30; --text: #f7f2e4; --muted: #b8ad92; }
+html[data-palette="sand"][data-theme="amoled"] { --surface: #110f0a; --surface2: #1a1710; --border: #2e2a1f; --text: #f7f2e4; --muted: #a89e85; }
+html[data-palette="sand"][data-theme="light"]  { --bg: #f8f4e9; --bg2: #f1ebdb; --surface: #ffffff; --surface2: #f9f5ec; --border: #e6dcc4; --text: #2a2414; --muted: #7a6d4f; }
+/* Jég: hideg kékesszürke */
+html[data-palette="ice"][data-theme="dark"]   { --bg: #1c2230; --bg2: #171c28; --surface: #242c3d; --surface2: #2e384c; --border: #3d4960; --text: #eceff4; --muted: #a3adc2; }
+html[data-palette="ice"][data-theme="amoled"] { --surface: #0d1017; --surface2: #141822; --border: #262d3d; --text: #eceff4; --muted: #97a1b5; }
+html[data-palette="ice"][data-theme="light"]  { --bg: #eef2f7; --bg2: #e3e9f1; --surface: #ffffff; --surface2: #f0f3f8; --border: #d3dce8; --text: #1c2433; --muted: #5a6782; }
+/* Neon: lilás-fekete éjszakai város */
+html[data-palette="neon"][data-theme="dark"]   { --bg: #140d1f; --bg2: #0f0918; --surface: #1e1430; --surface2: #2a1c42; --border: #3b2859; --text: #f6eaff; --muted: #b49acb; }
+html[data-palette="neon"][data-theme="amoled"] { --surface: #0c0714; --surface2: #140c20; --border: #2a1c40; --text: #f6eaff; --muted: #a68dbd; }
+html[data-palette="neon"][data-theme="light"]  { --bg: #f8effd; --bg2: #f0e2f9; --surface: #ffffff; --surface2: #f8f0fd; --border: #e5d0f2; --text: #24103a; --muted: #74569a; }
+
+/* háttér stílusok (Beállítások → Háttér); a kiemelő szín árnyalatát használják */
+html[data-bg="glow"] body {
+  background: radial-gradient(1100px 620px at 0% -10%, color-mix(in srgb, var(--accent) 17%, transparent), transparent 65%),
+    radial-gradient(900px 620px at 100% 0%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 60%), var(--bg);
+  background-attachment: fixed;
+}
+html[data-bg="dots"] body { background: radial-gradient(color-mix(in srgb, var(--text) 14%, transparent) 1.2px, transparent 1.7px) 0 0 / 22px 22px, var(--bg); background-attachment: fixed; }
+html[data-bg="grid"] body {
+  background: linear-gradient(color-mix(in srgb, var(--accent) 11%, transparent) 1px, transparent 1px) 0 0 / 24px 24px,
+    linear-gradient(90deg, color-mix(in srgb, var(--accent) 11%, transparent) 1px, transparent 1px) 0 0 / 24px 24px, var(--bg);
+  background-attachment: fixed;
+}
+
 html[data-density="compact"] { --pad: 12px; --gap: 10px; }
 html[data-density="cozy"] { --pad: 24px; --gap: 20px; }
 
@@ -119,6 +181,9 @@ a { color: var(--accent-strong); text-underline-offset: 3px; }
 /* ---------- panelek: sík felületek, a sugár a hierarchiát követi ---------- */
 .card { background: var(--surface); border: 1px solid transparent; border-radius: var(--radius); padding: var(--pad); box-shadow: var(--shadow); }
 html[data-theme="light"] .card { border-color: var(--border); }
+/* kártya stílusok (Beállítások → Kártyák) */
+html[data-cards="outline"] .card { background: transparent; border-color: var(--border); }
+html[data-cards="glass"] .card { background: color-mix(in srgb, var(--surface) 62%, transparent); border-color: color-mix(in srgb, var(--text) 9%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
 .card h3 { font-size: 1.125rem; margin-bottom: 14px; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .card h3 small { color: var(--muted); font-family: var(--font); font-weight: 500; font-size: .8125rem; letter-spacing: 0; }
 .grid { display: grid; gap: var(--gap); }
@@ -265,6 +330,13 @@ svg.chart .grid { stroke: var(--border); stroke-width: 1; }
 .set-row.wide .set-c { justify-self: stretch; }
 .set-c input[type="range"] { width: min(260px, 100%); accent-color: var(--accent); }
 .set-c select.input { width: auto; min-width: 180px; }
+.pal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 10px; }
+.pal { display: grid; gap: 8px; padding: 8px; border: 0; border-radius: var(--r-inner); background: var(--surface2); color: var(--text); font: inherit; font-weight: 650; font-size: .875rem; cursor: pointer; text-align: left; box-shadow: inset 0 0 0 1px var(--border); }
+.pal:hover { box-shadow: inset 0 0 0 1px var(--muted); }
+.pal.on { box-shadow: inset 0 0 0 2px var(--accent); }
+.pal-pv { display: flex; align-items: flex-end; gap: 6px; height: 46px; padding: 8px; border-radius: max(4px, calc(var(--r-inner) - 4px)); }
+.pal-pv i:first-child { flex: 1; height: 100%; border-radius: 6px; }
+.pal-pv i:last-child { width: 16px; height: 16px; border-radius: 50%; background: var(--accent); } /* a mostani kiemelő színt mutatja: így látszik a párosítás */
 .set-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px 18px; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 

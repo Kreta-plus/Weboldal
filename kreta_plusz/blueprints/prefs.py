@@ -14,6 +14,9 @@ DEFAULTS = {
     "nickname": "",
     "emoji": "🎓",
     "theme": "dark",          # auto | dark | light | amoled
+    "palette": "desk",        # desk | ocean | forest | grape | rose | slate | midnight | sunset | teal | sand | ice | neon
+    "bgStyle": "flat",        # flat | glow | dots | grid
+    "cardStyle": "fill",      # fill | outline | glass
     "accent": "#ffe14d",
     "density": "normal",      # compact | normal | cozy
     "fontScale": 1.0,
@@ -40,6 +43,9 @@ DEFAULTS = {
 }
 
 THEMES = {"auto", "dark", "light", "amoled"}
+PALETTES = {"desk", "ocean", "forest", "grape", "rose", "slate", "midnight", "sunset", "teal", "sand", "ice", "neon"}
+BG_STYLES = {"flat", "glow", "dots", "grid"}
+CARD_STYLES = {"fill", "outline", "glass"}
 DENSITY = {"compact", "normal", "cozy"}
 VIEWS = {"dashboard", "grades", "stats", "timetable", "homework", "absences", "notes", "names", "planner", "pack", "settings"}
 
@@ -97,6 +103,9 @@ def sanitize(d):
     out["nickname"] = _str(d.get("nickname"), 40)
     out["emoji"] = _str(d.get("emoji"), 8) or DEFAULTS["emoji"]
     out["theme"] = d.get("theme") if d.get("theme") in THEMES else "dark"
+    out["palette"] = d.get("palette") if d.get("palette") in PALETTES else "desk"
+    out["bgStyle"] = d.get("bgStyle") if d.get("bgStyle") in BG_STYLES else "flat"
+    out["cardStyle"] = d.get("cardStyle") if d.get("cardStyle") in CARD_STYLES else "fill"
     acc = d.get("accent")
     out["accent"] = acc if isinstance(acc, str) and re.fullmatch(r"#[0-9a-fA-F]{6}", acc) else DEFAULTS["accent"]
     out["density"] = d.get("density") if d.get("density") in DENSITY else "normal"
