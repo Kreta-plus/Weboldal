@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#221a15">
+  <title>ZsírKréta – a KRÉTA-d, átláthatóan</title>
+  <meta name="description" content="ZsírKréta: jegyek, órarend, házi és statisztikák egy helyen, a saját neveiddel és színeiddel. Nem hivatalos KRÉTA-kliens diákoknak, weben és Androidon.">
+  <link rel="icon" href="img/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- a data-app linkek címét a script.js elején lévő APP_URL adja -->
+  <header class="top">
+    <a class="brand" href="#"><img src="img/logo.svg" alt="" width="36" height="36">ZsírKréta</a>
+    <nav class="top-nav" aria-label="Oldal">
+      <a href="#tud">Mit tud?</a>
+      <a href="#szamolo">Jegyszámoló</a>
+      <a href="#kinezet">Kinézet</a>
+      <a href="#gyik">Kérdések</a>
+    </nav>
+    <a class="btn small" href="/" data-app>Megnyitás</a>
+  </header>
+
+  <main>
+    <!-- ---------- hős ---------- -->
+    <section class="hero">
+      <div class="hero-text">
+        <h1>A KRÉTA-d, végre átláthatóan.</h1>
+        <p class="lead">Jegyek, órarend, házi és hiányzások egy helyen. Látod, hány ötös kell még, átnevezheted a tanáraidat, és olyan színű lesz, amilyet szeretnél.</p>
+        <div class="cta">
+          <a class="btn" href="/" data-app>Belépek a KRÉTA-fiókommal</a>
+          <a class="btn ghost" href="/" data-app>Kipróbálom teszt fiókkal</a>
+        </div>
+        <p class="fine">A teszt fiókhoz nem kell KRÉTA-belépés, kitalált adatokkal nézhetsz körül.</p>
+      </div>
+
+      <div class="hero-stage" aria-hidden="true">
+        <svg class="scribble" viewBox="0 0 400 400">
+          <defs>
+            <filter id="wax" x="-10%" y="-10%" width="120%" height="120%">
+              <feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="4"/>
+              <feDisplacementMap in="SourceGraphic" scale="7"/>
+            </filter>
+          </defs>
+          <path class="z" d="M58 92c62-10 150-14 236-6L70 318c80-12 172-14 266-6" filter="url(#wax)"/>
+        </svg>
+
+        <div class="phone">
+          <div class="screen m">
+            <div class="m-hello">Jó reggelt, Dóri!</div>
+            <div class="m-sub">kedd, november 4. · következő óra: <b>Matematika</b> 8:00</div>
+            <div class="m-kpis">
+              <div class="m-kpi y"><b>4,27</b><span>Összátlag</span></div>
+              <div class="m-kpi s"><b>58</b><span>Érdemjegy</span></div>
+              <div class="m-kpi p"><b>3</b><span>Mulasztás</span></div>
+              <div class="m-kpi g"><b>2</b><span>Nyitott házi</span></div>
+            </div>
+            <div class="m-card">
+              <h4>Mai órák</h4>
+              <div class="m-les now"><i style="--c:#5cc8ff"></i><b>Matematika</b><span>8:00 · 12-es</span></div>
+              <div class="m-les"><i style="--c:#ff9f43"></i><b>Történelem</b><span>8:55 · 21-es</span></div>
+              <div class="m-les"><i style="--c:#45e3a0"></i><b>Biológia</b><span>9:50 · labor</span></div>
+              <div class="m-les"><i style="--c:#ff5fa2"></i><b>Angol nyelv</b><span>10:45 · 07-es</span></div>
+            </div>
+            <div class="m-card">
+              <h4>Friss jegyek</h4>
+              <div class="m-gr"><span class="gr g5">5</span><b>Fizika</b><span>témazáró</span></div>
+              <div class="m-gr"><span class="gr g4">4</span><b>Irodalom</b><span>felelet</span></div>
+            </div>
+            <div class="m-tabbar"><span class="on">🏠</span><span>📘</span><span>🗓️</span><span>📝</span><span>⋯</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- funkciók ---------- -->
+    <section class="features" id="tud">
+      <div class="features-head">
+        <h2>Minden, ami a KRÉTA-ban van. És ami hiányzott belőle.</h2>
+        <p>A ZsírKréta a saját KRÉTA-fiókodból dolgozik: ugyanazokat az adatokat látod, csak rendezettebben, és van mellé pár eszköz, amit a hivatalos app nem tud.</p>
+      </div>
+      <ul class="flist">
+        <li><span class="dot y">5</span><div><h3>Jegyek és jegyszámoló</h3><p>Tantárgyanként, félévre szűrve, súlyozott átlaggal. Beírhatsz elképzelt jegyeket, és megmondja, hány ötös kell a célodhoz.</p></div></li>
+        <li><span class="dot s">📊</span><div><h3>Statisztika</h3><p>Tizenegy grafikon: hogyan alakult az átlagod hónapról hónapra, melyik a legerősebb tárgyad, milyen napokon kapod a jegyeket.</p></div></li>
+        <li><span class="dot g">🗓️</span><div><h3>Órarend</h3><p>Napi és heti nézet, a mostani óra kiemelve. A helyettesítés és az elmaradó óra azonnal látszik.</p></div></li>
+        <li><span class="dot p">📝</span><div><h3>Házi és számonkérések</h3><p>Határidő szerint sorban. Kipipálhatod, ami kész, és felvehetsz saját házit vagy dolgozatot is a Tervezőben.</p></div></li>
+        <li><span class="dot o">🎒</span><div><h3>Táska</h3><p>Megadod, mit kell vinni az egyes órákra, és este kiírja, mi kerüljön a táskába holnapra.</p></div></li>
+        <li><span class="dot y">🏷️</span><div><h3>Saját nevek</h3><p>A „Magyar nyelv és irodalom” lehet egyszerűen „Irodalom”, a tanáraid pedig azon a néven szerepelnek, ahogy te hívod őket.</p></div></li>
+        <li><span class="dot s">📸</span><div><h3>Story kép</h3><p>Egy gombnyomásra kész kép az átlagodról és a legjobb eredményeidről, Instagramra méretezve.</p></div></li>
+        <li><span class="dot g">🤖</span><div><h3>Weben és Androidon</h3><p>Böngészőben gépen és telefonon is megy, és van natív Android alkalmazás is ugyanezekkel a funkciókkal.</p></div></li>
+      </ul>
+    </section>
+
+    <!-- ---------- jegyszámoló ---------- -->
+    <section class="calc" id="szamolo">
+      <div class="calc-text">
+        <h2>Hány ötös kell még?</h2>
+        <p>Próbáld ki itt, ugyanígy működik az appban. Koppints egy jegyre a törléséhez, vagy adj hozzá újat.</p>
+      </div>
+      <div class="calc-box">
+        <div class="calc-grades" id="grades" aria-live="polite"></div>
+        <div class="calc-add">
+          <span>Új jegy:</span>
+          <button type="button" class="gr g1" data-add="1" aria-label="Egyes hozzáadása">1</button>
+          <button type="button" class="gr g2" data-add="2" aria-label="Kettes hozzáadása">2</button>
+          <button type="button" class="gr g3" data-add="3" aria-label="Hármas hozzáadása">3</button>
+          <button type="button" class="gr g4" data-add="4" aria-label="Négyes hozzáadása">4</button>
+          <button type="button" class="gr g5" data-add="5" aria-label="Ötös hozzáadása">5</button>
+        </div>
+        <div class="calc-target" role="group" aria-label="Cél">
+          <span>Cél:</span>
+          <button type="button" data-target="2.5">hármas</button>
+          <button type="button" data-target="3.5">négyes</button>
+          <button type="button" data-target="4.5" class="on">ötös</button>
+        </div>
+        <div class="calc-out">
+          <div class="calc-avg" id="avg">–</div>
+          <p id="verdict"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- kinézet ---------- -->
+    <section class="look" id="kinezet">
+      <div class="look-head">
+        <h2>Olyan lesz, amilyennek szeretnéd.</h2>
+        <p>Sötét, világos vagy AMOLED mód, tizenkét színtéma, saját kiemelőszín, betűméret és lekerekítés. Válassz egy témát, és nézd meg rajta a képernyőket:</p>
+        <div class="swatches" role="radiogroup" aria-label="Színtéma">
+          <button type="button" role="radio" aria-checked="true" data-pal="desk" style="--a:#ffe14d;--b:#221a15">Íróasztal</button>
+          <button type="button" role="radio" aria-checked="false" data-pal="ocean" style="--a:#5cc8ff;--b:#0f1a24">Óceán</button>
+          <button type="button" role="radio" aria-checked="false" data-pal="forest" style="--a:#45e3a0;--b:#141c16">Erdő</button>
+          <button type="button" role="radio" aria-checked="false" data-pal="grape" style="--a:#b79cff;--b:#1b1626">Szőlő</button>
+          <button type="button" role="radio" aria-checked="false" data-pal="rose" style="--a:#ff5fa2;--b:#241519">Rózsa</button>
+          <button type="button" role="radio" aria-checked="false" data-pal="light" style="--a:#e8bf00;--b:#eef1fa">Világos</button>
+        </div>
+      </div>
+
+      <div class="shots" id="shots">
+        <figure>
+          <div class="shot m">
+            <div class="m-title">Jegyek</div>
+            <div class="m-card">
+              <div class="m-subj"><b>Matematika</b><span class="m-avg">4,40</span></div>
+              <div class="m-chips"><span class="gr g5">5</span><span class="gr g4">4</span><span class="gr g5">5</span><span class="gr g3">3</span><span class="gr g5">5</span></div>
+            </div>
+            <div class="m-card">
+              <div class="m-subj"><b>Fizika</b><span class="m-avg">3,67</span></div>
+              <div class="m-chips"><span class="gr g4">4</span><span class="gr g2">2</span><span class="gr g5">5</span></div>
+              <div class="m-hint">Egy ötössel 4,00 lenne.</div>
+            </div>
+            <div class="m-card">
+              <div class="m-subj"><b>Irodalom</b><span class="m-avg">4,75</span></div>
+              <div class="m-chips"><span class="gr g5">5</span><span class="gr g5">5</span><span class="gr g4">4</span><span class="gr g5">5</span></div>
+            </div>
+          </div>
+          <figcaption>Jegyek tantárgyanként, átlaggal</figcaption>
+        </figure>
+        <figure>
+          <div class="shot m">
+            <div class="m-title">Órarend</div>
+            <div class="m-day"><h5>Kedd</h5>
+              <div class="m-les now"><i style="--c:#5cc8ff"></i><b>Matematika</b><span>8:00–8:45</span></div>
+              <div class="m-les sub"><i style="--c:#ff9f43"></i><b>Történelem</b><span>helyettesítés</span></div>
+              <div class="m-les off"><i style="--c:#45e3a0"></i><b>Biológia</b><span>elmarad</span></div>
+              <div class="m-les"><i style="--c:#ff5fa2"></i><b>Angol nyelv</b><span>10:45–11:30</span></div>
+              <div class="m-les"><i style="--c:#b79cff"></i><b>Testnevelés</b><span>11:40–12:25</span></div>
+            </div>
+          </div>
+          <figcaption>Órarend helyettesítéssel</figcaption>
+        </figure>
+        <figure>
+          <div class="shot story">
+            <img src="img/logo.svg" alt="" width="44" height="44">
+            <b class="st-name">ZsírKréta</b>
+            <span class="st-sub">Erre vagyok büszke</span>
+            <div class="st-avg"><b>4,27</b><span>átlag, 58 jegy alapján</span></div>
+            <div class="st-tiles">
+              <div style="--t:#ffe14d"><b>21</b>ötös jegy</div>
+              <div style="--t:#5cc8ff"><b>4,75</b>legjobb: Irodalom</div>
+              <div style="--t:#ff5fa2"><b>6</b>jó jegy egymás után</div>
+              <div style="--t:#45e3a0"><b>0</b>igazolatlan óra</div>
+            </div>
+          </div>
+          <figcaption>Story kép megosztáshoz</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- ---------- biztonság ---------- -->
+    <section class="safe">
+      <h2>A jelszavad nálad marad.</h2>
+      <div class="safe-cols">
+        <p><b>A belépés a KRÉTA saját oldalán történik.</b> A jelszavadat a ZsírKréta nem látja és nem tárolja, csak egy titkosított megújító tokent, hogy ne kelljen mindig újra belépned.</p>
+        <p><b>Kíméli a KRÉTA szerverét.</b> Percenként frissít magától, de csak amíg nyitva van az oldal, és a frissítés gombot sem lehet egymás után nyomkodni. Ha a KRÉTA lassít, kivárja.</p>
+        <p><b>Bármikor törölheted.</b> A Beállításokban egy gombbal kiléphetsz minden eszközről, vagy törölheted a fiókodat az összes mentett beállítással együtt.</p>
+      </div>
+    </section>
+
+    <!-- ---------- GYIK ---------- -->
+    <section class="faq" id="gyik">
+      <h2>Kérdések</h2>
+      <details>
+        <summary>Ez a hivatalos KRÉTA?</summary>
+        <p>Nem. A ZsírKréta egy független alkalmazás, ami a saját KRÉTA-fiókod adatait mutatja meg másképp. Nem áll kapcsolatban az eKRÉTA fejlesztőjével.</p>
+      </details>
+      <details>
+        <summary>Át tudok írni jegyet vagy hiányzást?</summary>
+        <p>Nem, és ez így van rendjén. A ZsírKréta csak olvassa az adataidat. A jegyszámolóba beírt jegyek és a „jótanuló mód” csak nálad, a kijelzőn változtatnak, a KRÉTA-ban semmi nem módosul.</p>
+      </details>
+      <details>
+        <summary>Mi a teszt fiók?</summary>
+        <p>Véletlenszerű, kitalált adatokkal teli fiók, amivel belépés nélkül körbenézhetsz az appban. Semmi köze egy valódi diákhoz.</p>
+      </details>
+      <details>
+        <summary>Mi van, ha nem sikerül a belépés?</summary>
+        <p>Az appban a belépésnek több módja van: űrlappal, a KRÉTA oldalán, vagy a cím beillesztésével. Ha egyik sem megy, a hibaüzenet „Részletek” része megmutatja, melyik lépésnél akadt el.</p>
+      </details>
+      <details>
+        <summary>Átvihetem a beállításaimat a telefonra?</summary>
+        <p>Igen. A Beállításokban kimentheted őket egy fájlba, és a webes vagy az Android változatban visszatöltheted.</p>
+      </details>
+    </section>
+
+    <section class="last">
+      <img src="img/logo.svg" alt="" width="72" height="72">
+      <h2>Nézz bele egy perc alatt.</h2>
+      <a class="btn" href="/" data-app>Kipróbálom teszt fiókkal</a>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p>ZsírKréta – nem hivatalos KRÉTA-kliens diákoknak. A KRÉTA név és rendszer a jogtulajdonosáé; ez az oldal nem áll kapcsolatban vele.</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

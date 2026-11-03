@@ -4,9 +4,24 @@
     {
       "name": "zsirkreta",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-c", "from zsirkreta import create_app; create_app().run(host='127.0.0.1', port=3005, threaded=True)"],
+      "runtimeArgs": [
+        "-c",
+        "from zsirkreta import create_app; create_app().run(host='127.0.0.1', port=3005, threaded=True)"
+      ],
       "port": 3005,
       "autoPort": false
+    },
+    {
+      "name": "landerpage",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "3010",
+        "--directory",
+        "landerpage"
+      ],
+      "port": 3010
     }
   ]
 }
