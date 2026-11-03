@@ -33,7 +33,8 @@ import hu.zsirkreta.app.util.Dt;
 import hu.zsirkreta.app.util.Fmt;
 
 public final class SettingsScreen extends Screen {
-    private static final String[] SWATCHES = {"#6c5ce7", "#2ecc8f", "#38bdf8", "#f43f5e", "#f59e0b", "#d946ef", "#14b8a6", "#ef4444"};
+    private static final String[][] BG_STYLES = {{"flat", "Egyszínű"}, {"glow", "Ragyogás"}, {"dots", "Pöttyös"}, {"grid", "Kockás"}};
+    private static final String[][] CARD_STYLES = {{"fill", "Kitöltött"}, {"outline", "Keretes"}, {"glass", "Üveg"}};
     private static final String[][] WIDGET_LABELS = {{"avg", "Összesítő számok"}, {"next", "Mai órák"}, {"grades", "Friss jegyek"}, {"homework", "Házik"},
             {"tests", "Számonkérések"}, {"absences", "Hiányzások"}, {"trend", "Átlag-diagram"}, {"subjects", "Tantárgyi átlagok"}};
     private static boolean varsOpen = false;
@@ -63,8 +64,14 @@ public final class SettingsScreen extends Screen {
         look.addView(Ui.small(c(), "Téma"), Ui.lp(Ui.MATCH, Ui.WRAP));
         look.addView(Ui.seg(c(), new String[]{"auto", "dark", "light", "amoled"}, new String[]{"Auto", "Sötét", "Világos", "AMOLED"}, p.theme, k -> { p.theme = k; apply(); }), Ui.lp(Ui.MATCH, Ui.WRAP));
 
+        look.addView(Ui.small(c(), "Színtéma (a háttér és a kártyák színe; a kiemelő szín bármelyikhez párosítható)"), Ui.lp(Ui.MATCH, Ui.WRAP));
+        look.addView(palettes(p), Ui.lp(Ui.MATCH, Ui.WRAP));
         look.addView(Ui.small(c(), "Kiemelő szín"), Ui.lp(Ui.MATCH, Ui.WRAP));
         look.addView(swatches(p), Ui.lp(Ui.MATCH, Ui.WRAP));
+        look.addView(Ui.small(c(), "Háttér"), Ui.lp(Ui.MATCH, Ui.WRAP));
+        look.addView(seg(BG_STYLES, p.bgStyle, k -> { p.bgStyle = k; apply(); }), Ui.lp(Ui.MATCH, Ui.WRAP));
+        look.addView(Ui.small(c(), "Kártyák (az Üveg a Ragyogás vagy minta háttérrel mutat a legjobban)"), Ui.lp(Ui.MATCH, Ui.WRAP));
+        look.addView(seg(CARD_STYLES, p.cardStyle, k -> { p.cardStyle = k; apply(); }), Ui.lp(Ui.MATCH, Ui.WRAP));
 
         look.addView(Ui.small(c(), "Sűrűség"), Ui.lp(Ui.MATCH, Ui.WRAP));
         look.addView(Ui.seg(c(), new String[]{"compact", "normal", "cozy"}, new String[]{"Tömör", "Normál", "Tágas"}, p.density, k -> { p.density = k; apply(); }), Ui.lp(Ui.MATCH, Ui.WRAP));
@@ -171,10 +178,47 @@ public final class SettingsScreen extends Screen {
         data(card(root, "Adatok és biztonság", null), p);
     }
 
+    private View seg(String[][] items, String sel, java.util.function.Consumer<String> cb) {
+        String[] keys = new String[items.length], labels = new String[items.length];
+        for (int i = 0; i < items.length; i++) { keys[i] = items[i][0]; labels[i] = items[i][1]; }
+        return Ui.seg(c(), keys, labels, sel, cb::accept);
+    }
+
+    // ---------- színtéma ----------
+    private View palettes(Prefs p) {
+        LinearLayout col = Ui.vbox(c(), 10);
+        Ui.Flow f = Ui.flow(c(), 8);
+        int o = Theme.dark ? 3 : 17;   // az előnézet a mostani módhoz igazodik
+        for (String[] pal : Theme.PALETTES) {
+            boolean on = pal[0].equals(p.palette);
+            LinearLayout tile = Ui.hbox(c(), 8);
+            tile.setPadding(Ui.dp(8), Ui.dp(7), Ui.dp(12), Ui.dp(7));
+            tile.setBackground(Ui.ripple(Ui.shape(on ? Theme.accentSoft : Theme.surface2, 14, on ? Theme.accent : Theme.border, on ? 2 : 1), 14));
+            View pv = new View(c());
+            android.graphics.drawable.GradientDrawable d = new android.graphics.drawable.GradientDrawable(
+                    android.graphics.drawable.GradientDrawable.Orientation.TL_BR, new int[]{Color.parseColor(pal[o]), Color.parseColor(pal[o + 3])});
+            d.setCornerRadius(Ui.dp(8));
+            d.setStroke(Ui.dp(2), Color.parseColor(pal[2]));
+            pv.setBackground(d);
+            tile.addView(pv, Ui.lp(Ui.dp(26), Ui.dp(26)));
+            tile.addView(Ui.text(c(), pal[1], 13, Theme.text, on));
+            tile.setOnClickListener(v -> { p.palette = pal[0]; apply(); });
+            f.addView(tile);
+        }
+        col.addView(f, Ui.lp(Ui.MATCH, Ui.WRAP));
+        col.addView(Ui.smallButton(c(), "🎲 Véletlen párosítás", Ui.B_DEFAULT, () -> {
+            String[] pal = Theme.PALETTES[(int) (Math.random() * Theme.PALETTES.length)];
+            p.palette = pal[0];
+            p.accent = Math.random() < 0.5 ? pal[2] : Theme.SWATCHES[(int) (Math.random() * Theme.SWATCHES.length)];
+            apply();
+        }), Ui.lp(Ui.WRAP, Ui.WRAP));
+        return col;
+    }
+
     // ---------- kiemelő szín ----------
     private View swatches(Prefs p) {
         Ui.Flow f = Ui.flow(c(), 10);
-        for (String hex : SWATCHES) {
+        for (String hex : Theme.SWATCHES) {
             int col = Color.parseColor(hex);
             View sw = new View(c());
             boolean on = hex.equalsIgnoreCase(p.accent);
@@ -191,6 +235,13 @@ public final class SettingsScreen extends Screen {
         custom.setPadding(Ui.dp(14), Ui.dp(10), Ui.dp(14), Ui.dp(10));
         custom.setOnClickListener(v -> colorPicker(p));
         f.addView(custom);
+        String[] pal = Theme.palette(p.palette);
+        TextView match = Ui.text(c(), "● Témához illő", 13, Theme.text, true);
+        match.setBackground(Ui.ripple(Ui.shape(Theme.surface2, 20, Color.parseColor(pal[2]), 2), 20));
+        match.setGravity(Gravity.CENTER);
+        match.setPadding(Ui.dp(14), Ui.dp(10), Ui.dp(14), Ui.dp(10));
+        match.setOnClickListener(v -> { p.accent = pal[2]; apply(); });
+        f.addView(match);
         return f;
     }
 

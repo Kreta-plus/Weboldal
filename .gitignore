@@ -2,4 +2,4 @@
 zsirkreta/__pycache__
 *.pyc
 .venv
-data
+/data

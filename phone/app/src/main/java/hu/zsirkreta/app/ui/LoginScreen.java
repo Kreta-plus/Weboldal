@@ -18,8 +18,6 @@ import android.widget.TextView;
 
 import org.json.JSONObject;
 
-import java.util.ArrayDeque;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -30,28 +28,25 @@ import hu.zsirkreta.app.data.Kreta;
 import hu.zsirkreta.app.data.Kreta.KretaError;
 import hu.zsirkreta.app.util.Async;
 
-/** Belépés: űrlap, belépés a KRÉTA oldalán (beépített böngésző), cím beillesztése, teszt fiók, haladó beállítások. */
+/**
+ * Belépés, ugyanúgy, mint a weben: a KRÉTA saját oldalán (itt a beépített böngészőben, a kódot magától átveszi),
+ * tartalékként a végső cím beillesztésével, vagy teszt fiókkal. A jelszó csak a KRÉTA oldalára kerül.
+ */
 public final class LoginScreen {
     private final MainActivity act;
-    private final String message;
     private final Runnable onDone;
-
-    private String mode = "form";       // form | link
+    private String mode = "web";        // web | link
     private boolean advanced = false;
     private String errMsg, errDetail;
     private boolean busy = false;
     private LinearLayout card;
-    // statikus, hogy forgatáskor ne vesszen el a begépelt szöveg (a jelszó csak memóriában, sikeres belépéskor törlődik)
-    private static boolean remember = true;
-    private static String inst = "", user = "", pass = "", pasted = "";
-
+    // statikus, hogy forgatáskor ne vesszen el a beillesztett cím
+    private static String pasted = "";
     // a „cím beillesztése” módszer folyamatban lévő PKCE-adatai
     private static Kreta.Pkce pending;
-    // belépési próbák korlátja (5 próba / 10 perc fiókonként): a KRÉTA ne zárolja a fiókot
-    private static final Map<String, ArrayDeque<Long>> ATTEMPTS = new HashMap<>();
 
     public LoginScreen(MainActivity act, String message, Runnable onDone) {
-        this.act = act; this.message = message; this.onDone = onDone;
+        this.act = act; this.onDone = onDone;
         this.errMsg = message;
     }
 
@@ -90,7 +85,7 @@ public final class LoginScreen {
 
     private void draw() {
         card.removeAllViews();
-        if (mode.equals("form")) drawForm(); else drawLink();
+        if (mode.equals("web")) drawWeb(); else drawLink();
         drawAdvanced();
     }
 
@@ -114,7 +109,7 @@ public final class LoginScreen {
             box.addView(det, Ui.lp(Ui.MATCH, Ui.WRAP));
             box.addView(Ui.smallButton(act, "Másolás", Ui.B_DEFAULT, () -> {
                 ClipboardManager cm = (ClipboardManager) act.getSystemService(Context.CLIPBOARD_SERVICE);
-                if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("KRÉTA belépés nyoma", errDetail));
+                if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("KRÉTA belépés", errDetail));
                 act.toast("Kimásolva");
             }), Ui.lp(Ui.WRAP, Ui.WRAP));
         }
@@ -126,69 +121,37 @@ public final class LoginScreen {
         draw();
     }
 
-    // ---------- fő űrlap ----------
-    private void drawForm() {
-        TextView web = Ui.button(act, "Belépés a KRÉTA oldalán keresztül", Ui.B_PRIMARY, this::startWebLogin);
-        card.addView(web, Ui.lp(Ui.MATCH, Ui.WRAP));
-        TextView or = Ui.small(act, "vagy írd be az adataidat");
-        or.setGravity(Gravity.CENTER);
-        card.addView(or, Ui.lp(Ui.MATCH, Ui.WRAP));
-
-        EditText fInst = Ui.input(act, "pl. klik035123456", inst);
-        fInst.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
-        EditText fUser = Ui.input(act, "", user);
-        fUser.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
-        EditText fPass = Ui.input(act, "", pass);
-        fPass.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        Ui.onText(fInst, s -> inst = s);
-        Ui.onText(fUser, s -> user = s);
-        Ui.onText(fPass, s -> pass = s);
-        card.addView(Ui.field(act, "Iskola OM-azonosítója", fInst), Ui.lp(Ui.MATCH, Ui.WRAP));
-        card.addView(Ui.field(act, "Felhasználónév", fUser), Ui.lp(Ui.MATCH, Ui.WRAP));
-        card.addView(Ui.field(act, "Jelszó", fPass), Ui.lp(Ui.MATCH, Ui.WRAP));
-        card.addView(Ui.switchRow(act, "Maradjak belépve ezen az eszközön", remember, on -> remember = on), Ui.lp(Ui.MATCH, Ui.WRAP));
-        if (errMsg != null) card.addView(errorBox(), Ui.lp(Ui.MATCH, Ui.WRAP));
-        TextView go = Ui.button(act, busy ? "Belépés…" : "Belépés", Ui.B_PRIMARY, null);
+    // ---------- fő út: belépés a KRÉTA oldalán, a beépített böngészőben ----------
+    private void drawWeb() {
+        String[][] steps = {
+                {"Lépj be a KRÉTA-ban", "A gomb megnyitja a KRÉTA saját belépőoldalát. Ott a szokásos neveddel és jelszavaddal lépj be."},
+                {"Kész is", "A belépés után az app magától átveszi a belépést, semmit nem kell másolnod."}};
+        LinearLayout list = Ui.vbox(act, 10);
+        for (int i = 0; i < steps.length; i++) {
+            LinearLayout row = Ui.hbox(act, 10);
+            row.setGravity(Gravity.TOP);
+            TextView n = Ui.text(act, String.valueOf(i + 1), 13, i == 0 ? Theme.onAccent : Theme.text, true);
+            n.setGravity(Gravity.CENTER);
+            n.setBackground(Ui.shape(i == 0 ? Theme.accent : Theme.surface2, 13));
+            row.addView(n, Ui.lp(Ui.dp(26), Ui.dp(26)));
+            row.addView(Rows.twoLine(act, Ui.bold(act, steps[i][0]), Ui.small(act, steps[i][1])), Ui.grow());
+            list.addView(row, Ui.lp(Ui.MATCH, Ui.WRAP));
+        }
+        card.addView(list, Ui.lp(Ui.MATCH, Ui.WRAP));
+        TextView go = Ui.button(act, busy ? "Belépés…" : "Belépés a KRÉTA-ban", Ui.B_PRIMARY, null);
         go.setEnabled(!busy);
         go.setAlpha(busy ? 0.6f : 1f);
-        go.setOnClickListener(v -> submit());
+        go.setOnClickListener(v -> startWebLogin());
         card.addView(go, Ui.lp(Ui.MATCH, Ui.WRAP));
-        card.addView(Ui.small(act, "A jelszavadat nem tároljuk. A belépés után csak egy titkosított megújító token marad a készüléken (az Android Keystore védi), így nem kell újra belépned."), Ui.lp(Ui.MATCH, Ui.WRAP));
+        if (errMsg != null) card.addView(errorBox(), Ui.lp(Ui.MATCH, Ui.WRAP));
+        card.addView(Ui.small(act, "A jelszavad csak a KRÉTA oldalára kerül, az app nem látja és nem tárolja. A belépés után csak egy titkosított megújító token marad a telefonon (az Android Keystore védi), így nem kell újra belépned."), Ui.lp(Ui.MATCH, Ui.WRAP));
         card.addView(Ui.divider(act));
-        card.addView(Ui.button(act, "🧪 Belépés teszt fiókkal", Ui.B_DEFAULT, this::demo), Ui.lp(Ui.MATCH, Ui.WRAP));
-        card.addView(Ui.small(act, "A teszt fiók véletlen jegyekkel, órákkal, házikkal és dolgozatokkal van feltöltve, a KRÉTA-hoz nem kapcsolódik."), Ui.lp(Ui.MATCH, Ui.WRAP));
+        card.addView(Ui.button(act, "Kipróbálom teszt fiókkal", Ui.B_DEFAULT, this::demo), Ui.lp(Ui.MATCH, Ui.WRAP));
+        card.addView(Ui.small(act, "A teszt fiók kitalált jegyekkel, órákkal, házikkal és dolgozatokkal van feltöltve, a KRÉTA-hoz nem kapcsolódik."), Ui.lp(Ui.MATCH, Ui.WRAP));
         TextView alt = Ui.text(act, "Belépés a cím beillesztésével", 13, Theme.accent, true);
         alt.setPadding(0, Ui.dp(6), 0, Ui.dp(6));
         alt.setOnClickListener(v -> { mode = "link"; errMsg = null; errDetail = null; draw(); });
         card.addView(alt, Ui.lp(Ui.WRAP, Ui.WRAP));
-    }
-
-    private boolean throttled(String key) {
-        ArrayDeque<Long> q = ATTEMPTS.computeIfAbsent(key, k -> new ArrayDeque<>());
-        long now = System.currentTimeMillis();
-        while (!q.isEmpty() && now - q.peekFirst() > Config.LOGIN_WINDOW_MS) q.pollFirst();
-        return q.size() >= Config.LOGIN_MAX_ATTEMPTS;
-    }
-
-    private void submit() {
-        String i = inst.trim(), u = user.trim();
-        if (i.isEmpty() || u.isEmpty() || pass.isEmpty()) { setError("Töltsd ki az összes mezőt", null); return; }
-        String key = i + ":" + u.toLowerCase();
-        if (throttled(key)) { setError("Túl sok próbálkozás, várj pár percet", null); return; }
-        ATTEMPTS.get(key).addLast(System.currentTimeMillis());
-        busy = true; errMsg = null; errDetail = null;
-        draw();
-        final String pw = pass;
-        Async.run(() -> Kreta.loginWithPassword(u, pw, i), tok -> {
-            ATTEMPTS.remove(key);
-            Kreta.saveUser(i, u, tok, remember);
-            pass = "";
-            onDone.run();
-        }, e -> {
-            busy = false;
-            if (e instanceof KretaError) setError(e.getMessage(), ((KretaError) e).detail);
-            else setError("Hálózati hiba: " + e.getMessage(), null);
-        });
     }
 
     private void demo() {
@@ -196,31 +159,31 @@ public final class LoginScreen {
         onDone.run();
     }
 
-    // ---------- belépés a beépített böngészővel ----------
     private void startWebLogin() {
         Kreta.Pkce k = Kreta.newPkce();
         errMsg = null; errDetail = null;
+        draw();
         act.launchWebLogin(Kreta.authorizeUrl(k.challenge, k.state), k.verifier, (code, verifier, err) -> {
             if (code == null) {
                 if (err != null && !err.isEmpty()) setError(err, null);
                 return;
             }
-            finishWithCode(code, verifier, inst.trim());
+            finishWithCode(code, verifier);
         });
     }
 
-    private void finishWithCode(String code, String verifier, String instFallback) {
+    private void finishWithCode(String code, String verifier) {
         busy = true;
         draw();
         Async.run(() -> {
             Kreta.TokenResp t = Kreta.exchangeCode(code, verifier);
             if (!t.ok()) {
                 String d = t.json.optString("error_description", t.json.optString("error", ""));
-                throw new KretaError("A kód beváltása nem sikerült", 401, "login", d.isEmpty() ? "HTTP " + t.status : d);
+                throw new KretaError("A kód beváltása nem sikerült. Próbáld újra a „Belépés a KRÉTA-ban” gombbal.", 401, "login", d.isEmpty() ? "HTTP " + t.status : d);
             }
             return t.json;
         }, (JSONObject tok) -> {
-            Kreta.saveUser(instFallback.isEmpty() ? "?" : instFallback, null, tok, true);
+            Kreta.saveUser("?", null, tok, true);
             onDone.run();
         }, e -> {
             busy = false;
@@ -229,43 +192,50 @@ public final class LoginScreen {
         });
     }
 
-    // ---------- tartalék: a végső cím beillesztése ----------
+    // ---------- tartalék: a végső cím beillesztése (ha a beépített böngésző nem megy) ----------
     private void drawLink() {
         String[] steps = {
-                "Koppints a gombra, és lépj be a megnyíló KRÉTA oldalon.",
-                "A végén az oldal hibát vagy üres lapot mutathat, ez normális.",
-                "Másold ki a böngésző címsorából a teljes címet (benne a ?code= résszel), és illeszd be ide."};
+                "Nyomd meg a gombot, és lépj be a KRÉTA oldalán a böngésződben.",
+                "A végén hibaoldal vagy üres lap jön, ez így jó. Másold ki a címsorból a teljes címet (benne a ?code= résszel).",
+                "Gyere vissza ide, és illeszd be a címet."};
         LinearLayout list = Ui.vbox(act, 6);
         for (int i = 0; i < steps.length; i++) list.addView(Ui.muted(act, (i + 1) + ". " + steps[i]), Ui.lp(Ui.MATCH, Ui.WRAP));
         card.addView(list, Ui.lp(Ui.MATCH, Ui.WRAP));
-        card.addView(Ui.button(act, "Megnyitás a böngészőben", Ui.B_DEFAULT, () -> {
+        card.addView(Ui.button(act, "Belépés a KRÉTA-ban", Ui.B_PRIMARY, () -> {
             pending = Kreta.newPkce();
             try {
                 act.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(Kreta.authorizeUrl(pending.challenge, pending.state))));
             } catch (Exception e) { setError("Nem tudtam megnyitni a böngészőt", e.getMessage()); }
         }), Ui.lp(Ui.MATCH, Ui.WRAP));
-        EditText url = Ui.input(act, "https://…oauthredirect?code=…", pasted);
-        Ui.onText(url, s -> pasted = s);
-        card.addView(Ui.field(act, "Beillesztett cím", url), Ui.lp(Ui.MATCH, Ui.WRAP));
-        EditText i2 = Ui.input(act, "", inst);
-        Ui.onText(i2, s -> inst = s);
-        card.addView(Ui.field(act, "Iskola OM-azonosítója (ha kéri)", i2), Ui.lp(Ui.MATCH, Ui.WRAP));
-        if (errMsg != null) card.addView(errorBox(), Ui.lp(Ui.MATCH, Ui.WRAP));
-        card.addView(Ui.button(act, busy ? "Belépés…" : "Kész, belépek", Ui.B_PRIMARY, () -> {
-            if (pending == null) { setError("Előbb kattints a belépés gombra.", null); return; }
-            String raw = pasted.trim(), code = null;
-            try { code = Uri.parse(raw).getQueryParameter("code"); } catch (Exception ignored) {}
-            if ((code == null || code.isEmpty()) && !raw.contains("?") && !raw.contains("/") && raw.length() >= 20) code = raw;
-            if (code == null || code.isEmpty()) { setError("Nem találtam kódot a címben. A cím végén ?code=... kell legyen.", null); return; }
-            Kreta.Pkce p = pending;
-            pending = null;
-            finishWithCode(code, p.verifier, inst.trim());
+        card.addView(Ui.button(act, "Beillesztés és belépés", Ui.B_DEFAULT, () -> {
+            ClipboardManager cm = (ClipboardManager) act.getSystemService(Context.CLIPBOARD_SERVICE);
+            CharSequence clip = cm != null && cm.hasPrimaryClip() && cm.getPrimaryClip().getItemCount() > 0 ? cm.getPrimaryClip().getItemAt(0).coerceToText(act) : null;
+            if (clip == null || clip.length() == 0) { setError("A vágólap üres. Másold ki a címet a böngésző címsorából.", null); return; }
+            pasted = clip.toString();
+            finishLink();
         }), Ui.lp(Ui.MATCH, Ui.WRAP));
+        EditText url = Ui.input(act, "https://…oauthredirect?code=…", pasted);
+        url.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
+        Ui.onText(url, s -> pasted = s);
+        card.addView(Ui.field(act, "Vagy illeszd be ide a címet", url), Ui.lp(Ui.MATCH, Ui.WRAP));
+        if (errMsg != null) card.addView(errorBox(), Ui.lp(Ui.MATCH, Ui.WRAP));
+        card.addView(Ui.button(act, busy ? "Belépés…" : "Kész, belépek", Ui.B_DEFAULT, this::finishLink), Ui.lp(Ui.MATCH, Ui.WRAP));
         TextView back = Ui.text(act, "Vissza a normál belépéshez", 13, Theme.accent, true);
         back.setGravity(Gravity.CENTER);
         back.setPadding(0, Ui.dp(6), 0, Ui.dp(6));
-        back.setOnClickListener(v -> { mode = "form"; errMsg = null; errDetail = null; draw(); });
+        back.setOnClickListener(v -> { mode = "web"; errMsg = null; errDetail = null; draw(); });
         card.addView(back, Ui.lp(Ui.MATCH, Ui.WRAP));
+    }
+
+    private void finishLink() {
+        if (pending == null) { setError("Előbb nyomd meg a „Belépés a KRÉTA-ban” gombot.", null); return; }
+        String raw = pasted.trim(), code = null;
+        try { code = Uri.parse(raw).getQueryParameter("code"); } catch (Exception ignored) {}
+        if ((code == null || code.isEmpty()) && !raw.contains("?") && !raw.contains("/") && raw.length() >= 20) code = raw;
+        if (code == null || code.isEmpty()) { setError("Nem találtam kódot a címben. A cím végén ?code=... kell legyen.", null); return; }
+        Kreta.Pkce p = pending;
+        pending = null;   // a kód egyszer használható
+        finishWithCode(code, p.verifier);
     }
 
     // ---------- haladó: KRÉTA végpontok (a webes változat környezeti változói) ----------

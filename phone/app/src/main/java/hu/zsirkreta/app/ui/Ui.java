@@ -154,9 +154,54 @@ public final class Ui {
         return v;
     }
 
+    // ---------- háttér ----------
+    /** Az oldal háttere a Beállítások → Háttér szerint (a webes html[data-bg] stílusok). */
+    public static Drawable background() {
+        switch (Theme.bgStyle) {
+            case "glow": {
+                GradientDrawable g = new GradientDrawable(GradientDrawable.Orientation.TL_BR,
+                        new int[]{Theme.mix(Theme.bg, Theme.accent, 0.17f), Theme.mix(Theme.bg, Theme.accent, 0.05f), Theme.bg});
+                return g;
+            }
+            case "dots": return new PatternBg(false);
+            case "grid": return new PatternBg(true);
+            default: {
+                GradientDrawable g = new GradientDrawable();
+                g.setColor(Theme.bg);
+                return g;
+            }
+        }
+    }
+
+    /** Pöttyös (22 dp-s rács, halvány szövegszín) vagy kockás füzet (24 dp, halvány kiemelő szín) háttér. */
+    private static final class PatternBg extends Drawable {
+        private final boolean grid;
+        private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
+        PatternBg(boolean grid) { this.grid = grid; }
+        @Override public void draw(Canvas c) {
+            android.graphics.Rect b = getBounds();
+            c.drawColor(Theme.bg);
+            if (grid) {
+                p.setColor(Theme.withAlpha(Theme.accent, 0.11f));
+                p.setStrokeWidth(Math.max(1, dp(1)));
+                float step = dp(24);
+                for (float x = b.left; x < b.right; x += step) c.drawLine(x, b.top, x, b.bottom, p);
+                for (float y = b.top; y < b.bottom; y += step) c.drawLine(b.left, y, b.right, y, p);
+            } else {
+                p.setColor(Theme.withAlpha(Theme.text, 0.14f));
+                float step = dp(22), r = dp(1.2f);
+                for (float y = b.top + step / 2; y < b.bottom; y += step)
+                    for (float x = b.left + step / 2; x < b.right; x += step) c.drawCircle(x, y, r, p);
+            }
+        }
+        @Override public void setAlpha(int a) {}
+        @Override public void setColorFilter(android.graphics.ColorFilter cf) {}
+        @SuppressWarnings("deprecation") @Override public int getOpacity() { return android.graphics.PixelFormat.OPAQUE; }
+    }
+
     // ---------- kártyák ----------
     public static GradientDrawable cardBg() {
-        return shape(Theme.withAlpha(Theme.surface, Theme.cardAlpha), Theme.radius, Theme.border, Theme.borderW);
+        return shape(Theme.withAlpha(Theme.surface, Theme.cardAlpha), Theme.radius, Theme.cardBorder, Theme.borderW);
     }
 
     public static LinearLayout card(Context c) {
@@ -518,8 +563,8 @@ public final class Ui {
         View root = ((Activity) c).findViewById(android.R.id.content);
         if (root == null) return;
         Snackbar sb = Snackbar.make(root, msg, Snackbar.LENGTH_SHORT);
-        sb.setBackgroundTint(Theme.dark ? Theme.surface2 : 0xFF2A2D4A);
-        sb.setTextColor(Theme.dark ? Theme.text : Color.WHITE);
+        sb.setBackgroundTint(Theme.text);   // mint a webes .toast: szövegszínű alap, háttérszínű szöveg
+        sb.setTextColor(Theme.bg);
         sb.show();
     }
 
@@ -541,7 +586,20 @@ public final class Ui {
     }
 
     /** KPI csempe a kezdőlapon / statisztikában. */
-    public static LinearLayout kpi(Context c, String value, String label, String note, int noteColor) {
+    public static LinearLayout kpi(Context c, String value, String label, String note, int noteColor) { return kpi(c, value, label, note, noteColor, 0); }
+
+    /** Szövegkiemelő színű KPI csempe sötét szöveggel (mint a webes kezdőlap négy összesítője); fill = 0: sima kártya. */
+    public static LinearLayout kpi(Context c, String value, String label, String note, int noteColor, int fill) {
+        if (fill != 0) {
+            LinearLayout l = vbox(c, 0);
+            l.setBackground(shape(fill, Theme.radius));
+            int p = dp(Theme.pad);
+            l.setPadding(p, p, p, p);
+            l.addView(text(c, value, 30 * Theme.kpiScale, Theme.INK, true), lp(WRAP, WRAP));
+            l.addView(text(c, label, 14, Theme.INK, true), margin(lp(WRAP, WRAP), 0, 8, 0, 0));
+            if (note != null && !note.isEmpty()) l.addView(text(c, note, 12, Theme.withAlpha(Theme.INK, 0.8f), false), margin(lp(WRAP, WRAP), 0, 2, 0, 0));
+            return l;
+        }
         LinearLayout l = new KpiTile(c);
         l.setOrientation(LinearLayout.VERTICAL);
         int p = dp(Theme.pad);

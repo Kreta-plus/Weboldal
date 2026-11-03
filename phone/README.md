@@ -28,9 +28,11 @@ Kezdőlap (widgetek, mai órák, vicces mondat, story) · Jegyek (félév-szűr�
 Statisztika (11 diagram) · Órarend (nap/hét nézet, húzás) · Házi + számonkérések (helyi pipálás) · Hiányzások ·
 Feljegyzések · Nevek (saját tanár-/tantárgynevek, becenév) · Tervező (saját házik, dolgozatok) ·
 Táska (felszerelés tantárgyanként + teljes képernyős holnapi táska 4 elrendezéssel) ·
-Beállítások (téma: auto/sötét/világos/AMOLED, kiemelő szín, sűrűség, betűméret, lekerekítés, kezdőoldal, súlyozott átlag, célátlag,
+Beállítások (téma: auto/sötét/világos/AMOLED, a weboldal 12 színtémája, kiemelő szín, háttér- és kártyastílus, sűrűség, betűméret, lekerekítés, kezdőoldal, súlyozott átlag, célátlag,
 widgetek, elrejtett tantárgyak, egyedi stílus, jótanuló mód, developer mód, export/import, kilépés, fiók törlése) ·
-Story kép (1080×1920, mentés a Képek közé vagy megosztás) · Belépés: űrlap, a KRÉTA oldalán (beépített böngésző), cím beillesztésével, teszt fiók.
+Story kép (1080×1920, mentés a Képek közé vagy megosztás) · Belépés, mint a weben: a KRÉTA saját oldalán (beépített böngésző), cím beillesztésével, teszt fiók ·
+Frissítés, mint a weben: percenként automatikusan (csak amíg az app előtérben van), belépés után azonnal friss adat, a gomb és az
+automatikus frissítés együtt is legfeljebb percenként kér a KRÉTA-tól, új adatnál „Frissítve, új adat: …” üzenet.
 
 ## Ami szándékosan másképp van
 
@@ -40,12 +42,11 @@ Story kép (1080×1920, mentés a Képek közé vagy megosztás) · Belépés: �
 * **Munkamenetek.** Nincs szerver, így nincs „Kilépés mindenhonnan” és eszközlista; a kilépés a készüléken törli a tokent és a gyorsítótárat
   (a beállítások fiókonként megmaradnak).
 * **KRÉTA-végpontok.** A webes README környezeti változói helyett a belépő képernyő „Haladó beállítások” részén szerkeszthetők.
-  Ha a belépés nem sikerül, a hibaüzenet „Részletek” része megmutatja a lépések nyomát (a webnél ez a terminálban volt).
+  Ha a belépés nem sikerül, a hibaüzenet „Részletek” része megmutatja a KRÉTA válaszát.
 * Új: húzásra frissítés, élő témaváltás újraindítás nélkül, beépített böngészős belépés (a kódot automatikusan elfogja).
 
 ## Fontos
 
-A KRÉTA belépés ellenőrizve van a valódi szerverig (átirányítások, az élő belépő űrlap kiolvasása és elküldése), **de valódi
-fiókkal nem próbáltam**. A webes változat README-je is jelezte, hogy a kliens-azonosító/redirect értékek élőben nem voltak
-ellenőrizve. Ha a belépés elutasít, a „Részletek” nyom és a Haladó beállítások segít; a beépített böngészős belépés általában a
-legbiztosabb (captcha esetén is működik).
+A belépés a KRÉTA saját oldalán történik (a jelszó az appba nem kerül), a kódot a beépített böngésző fogja el. Teszt fiókkal
+emulátoron kipróbálva, **valódi KRÉTA-fiókkal nem**. Ha a belépés elutasít, a „Részletek” rész és a Haladó beállítások segít;
+ha a beépített böngésző nem megy, a „Belépés a cím beillesztésével” a tartalék.

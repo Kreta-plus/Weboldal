@@ -35,7 +35,9 @@ import hu.zsirkreta.app.util.Dt;
 import hu.zsirkreta.app.util.Fmt;
 
 public final class DashboardScreen extends Screen {
-    private static final Map<String, String> QUIPS = new HashMap<>();   // naponta/óraszerkezetenként egy szöveg, hogy újrarajzoláskor ne változzon
+    private static final Map<String, String> QUIPS = new HashMap<>();
+    // a webes --hl-* szövegkiemelő színek (a kezdőlap négy összesítője)
+    private static final int HL_YELLOW = 0xFFFFE14D, HL_SKY = 0xFF5CC8FF, HL_PINK = 0xFFFF5FA2, HL_MINT = 0xFF45E3A0;   // naponta/óraszerkezetenként egy szöveg, hogy újrarajzoláskor ne változzon
 
     public DashboardScreen(MainActivity a) { super(a); }
 
@@ -98,10 +100,10 @@ public final class DashboardScreen extends Screen {
             LinearLayout r1 = Ui.hbox(c(), Theme.gap), r2 = Ui.hbox(c(), Theme.gap);
             String note1 = delta == null ? "cél: " + Fmt.f2(target) : (delta >= 0 ? "▲ " : "▼ ") + Fmt.f2(Math.abs(delta)) + " 30 napja";
             int col1 = delta == null ? Theme.muted : delta >= 0 ? Theme.g[5] : Theme.g[1];
-            r1.addView(Ui.kpi(c(), Fmt.f2(avg), "Összátlag", note1, col1), Ui.lp(0, Ui.MATCH, 1f));
-            r1.addView(Ui.kpi(c(), String.valueOf(gs.size()), "Érdemjegy", last30.size() + " az elmúlt 30 napban", Theme.muted), Ui.lp(0, Ui.MATCH, 1f));
-            r2.addView(Ui.kpi(c(), String.valueOf(ab.size()), "Mulasztás", unexc > 0 ? unexc + " igazolatlan" : "minden igazolt", unexc > 0 ? Theme.g[1] : Theme.g[5]), Ui.lp(0, Ui.MATCH, 1f));
-            r2.addView(Ui.kpi(c(), String.valueOf(hwOpen.size()), "Nyitott házi", testsNext.size() + " közelgő számonkérés", Theme.muted), Ui.lp(0, Ui.MATCH, 1f));
+            r1.addView(Ui.kpi(c(), Fmt.f2(avg), "Összátlag", note1, col1, HL_YELLOW), Ui.lp(0, Ui.MATCH, 1f));
+            r1.addView(Ui.kpi(c(), String.valueOf(gs.size()), "Érdemjegy", last30.size() + " az elmúlt 30 napban", Theme.muted, HL_SKY), Ui.lp(0, Ui.MATCH, 1f));
+            r2.addView(Ui.kpi(c(), String.valueOf(ab.size()), "Mulasztás", unexc > 0 ? unexc + " igazolatlan" : "minden igazolt", unexc > 0 ? Theme.g[1] : Theme.g[5], HL_PINK), Ui.lp(0, Ui.MATCH, 1f));
+            r2.addView(Ui.kpi(c(), String.valueOf(hwOpen.size()), "Nyitott házi", testsNext.size() + " közelgő számonkérés", Theme.muted, HL_MINT), Ui.lp(0, Ui.MATCH, 1f));
             grid.addView(r1, Ui.lp(Ui.MATCH, Ui.WRAP));
             grid.addView(r2, Ui.lp(Ui.MATCH, Ui.WRAP));
             root.addView(grid, Ui.lp(Ui.MATCH, Ui.WRAP));

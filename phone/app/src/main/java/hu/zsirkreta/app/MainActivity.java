@@ -72,11 +72,15 @@ public class MainActivity extends AppCompatActivity {
     private LinearLayout bottomBar;
     private TextView titleView, freshView, avatarView;
     private ImageView syncIcon;
+    private FrameLayout syncButton;
     private ObjectAnimator spin;
 
     private String current = "dashboard";
     private Screen screen;
-    private boolean inApp = false, refreshing = false, bootLoading = false;
+    private boolean inApp = false, refreshing = false, bootLoading = false, resumed = false, pendingRender = false;
+    // frissítés: percenként automatikusan, a gombbal kézzel is, de a kettő együtt is legfeljebb percenként
+    private long nextAt = 0, autoAt = 0;        // mikortól lehet újra kényszeríteni / mikor jön az automatikus frissítés (ms)
+    private String note = "", lastErrs = "";
     private ActivityResultLauncher<Intent> webLogin;
     private WebLoginHandler webLoginHandler;
     private ActivityResultLauncher<String> exportLauncher;
@@ -137,6 +141,21 @@ public class MainActivity extends AppCompatActivity {
     @Override protected void onPause() {
         super.onPause();
         St.flushNow();
+        resumed = false;
+        Async.handler().removeCallbacks(autoTick);
+        Async.handler().removeCallbacks(statusTick);
+    }
+
+    @Override protected void onResume() {
+        super.onResume();
+        resumed = true;
+        // az állapotsor-időzítő a belépő képernyőn is fut (maga figyeli, belépett-e), így belépés után is frissül
+        Async.handler().removeCallbacks(statusTick);
+        Async.handler().post(statusTick);
+        if (!inApp) return;
+        // háttérben nem kérdezünk; visszatéréskor pótoljuk, ha már esedékes
+        if (autoAt > 0 && System.currentTimeMillis() >= autoAt) refresh(true, true);
+        else if (autoAt > 0) Async.ui(autoTick, autoAt - System.currentTimeMillis());
     }
 
     private boolean systemDark() {
@@ -146,6 +165,7 @@ public class MainActivity extends AppCompatActivity {
     // ---------- belépés ----------
     public void showLogin(String message) {
         inApp = false;
+        stopAuto();
         screen = null;
         St.reset();
         Theme.apply(St.prefs, systemDark());
@@ -187,13 +207,14 @@ public class MainActivity extends AppCompatActivity {
         buildShell();
         bootLoading = true;
         show(current);
+        nextAt = 0; autoAt = 0; note = ""; lastErrs = "";
         Async.run(St::cachedBundle, cached -> {
             if (!inApp) return;
             St.applyBundle(cached, false);
             if (!St.raw.isEmpty()) bootLoading = false;
             rerender();
-            refresh(false);
-        }, e -> refresh(false));
+            refresh(true, true);
+        }, e -> refresh(true, true));
     }
 
     public Screen currentScreen() { return screen; }
@@ -212,11 +233,8 @@ public class MainActivity extends AppCompatActivity {
         return f;
     }
 
-    /** Alap háttér + halvány kiemelő színű "fény" a jobb felső sarokban (mint a webes háttér). */
-    private GradientDrawable bgDrawable() {
-        GradientDrawable g = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{Theme.mix(Theme.bg, Theme.accent, Theme.dark ? 0.12f : 0.07f), Theme.bg, Theme.bg});
-        return g;
-    }
+    /** Háttér a Beállítások → Háttér szerint: egyszínű, ragyogás, pöttyös vagy kockás füzet (mint a weben). */
+    private android.graphics.drawable.Drawable bgDrawable() { return Ui.background(); }
 
     private void paintWindow() {
         getWindow().getDecorView().setBackgroundColor(Theme.bg);
@@ -264,9 +282,9 @@ public class MainActivity extends AppCompatActivity {
         titles.addView(titleView, Ui.lp(Ui.WRAP, Ui.WRAP));
         titles.addView(freshView, Ui.lp(Ui.WRAP, Ui.WRAP));
         top.addView(titles, Ui.grow());
-        FrameLayout sync = Ui.iconButton(this, R.drawable.ic_refresh, Theme.muted, () -> refresh(true));
-        syncIcon = (ImageView) sync.getChildAt(0);
-        top.addView(sync);
+        syncButton = Ui.iconButton(this, R.drawable.ic_refresh, Theme.muted, () -> refresh(true, false));
+        syncIcon = (ImageView) syncButton.getChildAt(0);
+        top.addView(syncButton);
         avatarView = Ui.text(this, St.prefs.emoji, 18, Theme.text, false);
         avatarView.setGravity(Gravity.CENTER);
         avatarView.setBackground(Ui.ripple(Ui.shape(Theme.accentSoft, 14, Theme.border, 1), 14));
@@ -278,7 +296,7 @@ public class MainActivity extends AppCompatActivity {
         swipe = new SwipeRefreshLayout(this);
         swipe.setColorSchemeColors(Theme.accent);
         swipe.setProgressBackgroundColorSchemeColor(Theme.surface);
-        swipe.setOnRefreshListener(() -> refresh(true));
+        swipe.setOnRefreshListener(() -> refresh(true, false));
         scroll = new ScrollView(this);
         scroll.setFillViewport(true);
         scroll.setClipToPadding(false);
@@ -434,49 +452,132 @@ public class MainActivity extends AppCompatActivity {
     /** Újrarajzolás a görgetési pozíció megtartásával. */
     public void rerender() {
         if (!inApp || screen == null) return;
+        pendingRender = false;
         int y = scroll.getScrollY();
         draw();
         updateFresh();
         scroll.post(() -> scroll.scrollTo(0, y));
     }
 
+    private static long secs(long at) { return Math.max(1, (at - System.currentTimeMillis() + 999) / 1000); }
+
+    /** Állapotsor a cím alatt: „Frissítés…”, vagy „frissítve 2 perce · újra 42 mp múlva”, vagy a KRÉTA állapota. */
     private void updateFresh() {
-        Double f = St.freshest();
-        freshView.setText(f != null ? "frissítve " + Dt.ago(f) : "");
-        freshView.setVisibility(f != null ? View.VISIBLE : View.GONE);
+        if (freshView == null) return;
+        long now = System.currentTimeMillis();
+        String t;
+        if (refreshing) t = "Frissítés…";
+        else {
+            Double f = St.freshest();
+            String base = !note.isEmpty() ? note : f != null ? "frissítve " + Dt.ago(f) : "";
+            String next = autoAt > now ? "újra " + secs(autoAt) + " mp múlva" : "";
+            t = base.isEmpty() ? next : next.isEmpty() ? base : base + " · " + next;
+        }
+        freshView.setText(t);
+        freshView.setVisibility(t.isEmpty() ? View.GONE : View.VISIBLE);
         avatarView.setText(St.prefs.emoji);
+        if (syncButton != null) syncButton.setAlpha(refreshing || now < nextAt ? 0.45f : 1f);
+    }
+
+    /** Másodpercenként: állapotsor, és a gépelés miatt elhalasztott újrarajzolás pótlása. */
+    private final Runnable statusTick = new Runnable() {
+        @Override public void run() {
+            if (!resumed) return;
+            if (inApp) {
+                updateFresh();
+                if (pendingRender && !typing()) rerender();
+            }
+            Async.ui(this, 1000);
+        }
+    };
+
+    private final Runnable autoTick = () -> { if (inApp && resumed) refresh(true, true); };
+
+    private void scheduleAuto(St.Bundle b) {
+        Async.handler().removeCallbacks(autoTick);
+        long ms = Math.max(hu.zsirkreta.app.data.Config.AUTO_REFRESH_MS, Math.max(b == null ? 0 : b.waitSec, b == null ? 0 : b.cooldownSec) * 1000)
+                + 500 + (long) (Math.random() * 1500);
+        autoAt = System.currentTimeMillis() + ms;
+        if (resumed) Async.ui(autoTick, ms);
+    }
+
+    /** Épp ír valamit a felhasználó? Akkor nem rajzolunk alá új adatot. */
+    private boolean typing() {
+        View f = getCurrentFocus();
+        return f instanceof android.widget.EditText && content != null && isInside(f, content);
+    }
+
+    private static boolean isInside(View v, View root) {
+        for (android.view.ViewParent p = v.getParent(); p != null; p = p.getParent()) if (p == root) return true;
+        return false;
     }
 
     public void toast(String msg) { Ui.toast(this, msg); }
 
+    private static String names(java.util.Collection<String> keys) {
+        List<String> out = new ArrayList<>();
+        for (String k : keys) out.add(St.LABELS.containsKey(k) ? St.LABELS.get(k) : k);
+        return String.join(", ", out);
+    }
+
     // ---------- adatok frissítése ----------
-    public void refresh(boolean force) {
+    /** Kézi frissítés (gomb, lehúzás) – a képernyők is ezt hívják. */
+    public void refresh(boolean force) { refresh(force, false); }
+
+    /**
+     * force: friss adat a KRÉTA-ból (legfeljebb percenként); auto: automatikus (csendes, csak új adatnál szól).
+     * Új adatnál az aktuális képernyő a görgetési pozíció megtartásával rajzolódik újra.
+     */
+    public void refresh(boolean force, boolean auto) {
         if (refreshing || !inApp) { if (swipe != null) swipe.setRefreshing(false); return; }
+        if (force && System.currentTimeMillis() < nextAt) {
+            if (swipe != null) swipe.setRefreshing(false);
+            if (!auto) toast("Túl gyakran frissítenél, " + secs(nextAt) + " mp múlva lehet újra");
+            return;
+        }
         refreshing = true;
         setSpinning(true);
+        updateFresh();
         Async.run(() -> St.fetchBundle(force), b -> {
             refreshing = false;
-            bootLoading = false;
             setSpinning(false);
             if (swipe != null) swipe.setRefreshing(false);
             if (!inApp) return;
             if (b.relogin != null) {
+                stopAuto();
                 showLogin("Lejárt a belépés, jelentkezz be újra");
                 return;
             }
-            if (force) St.weekCache.clear();
-            St.applyBundle(b, true);
-            if (!St.errors.isEmpty()) toast("Nem minden adat töltődött be (" + String.join(", ", St.errors.keySet()) + ")");
-            else if (force) toast("Frissítve");
-            rerender();
+            boolean wasLoading = bootLoading;
+            bootLoading = false;
+            List<String> changed = St.applyBundle(b, true);
+            note = b.cooldownSec > 0 ? "a KRÉTA lassít, kicsit várunk" : b.stale ? "a KRÉTA nem elérhető, régebbi adat" : "";
+            nextAt = System.currentTimeMillis() + b.waitSec * 1000;
+            String errKey = String.join(",", St.errors.keySet());
+            if (!St.errors.isEmpty() && (!auto || !errKey.equals(lastErrs))) toast("Nem minden adat töltődött be (" + names(St.errors.keySet()) + ")");
+            lastErrs = errKey;
+            if (!changed.isEmpty()) toast("Frissítve, új adat: " + names(changed));
+            else if (!auto && b.throttled) toast("Túl gyakran frissítenél, " + secs(nextAt) + " mp múlva lehet újra");
+            else if (!auto && force && St.errors.isEmpty()) toast("Frissítve, nincs új adat");
+            if (b.throttled || changed.contains("orarend")) St.weekCache.keySet().retainAll(java.util.Collections.singleton(Dt.iso(Dt.mondayOf(Dt.today()))));
+            scheduleAuto(b);
+            if (wasLoading || !changed.isEmpty()) { if (typing()) pendingRender = true; else rerender(); }
+            updateFresh();
         }, e -> {
             refreshing = false;
             bootLoading = false;
             setSpinning(false);
             if (swipe != null) swipe.setRefreshing(false);
+            note = "a frissítés nem sikerült";
+            scheduleAuto(null);
             rerender();
-            toast(e.getMessage() == null ? "Hiba a frissítéskor" : e.getMessage());
+            if (!auto) toast(e.getMessage() == null ? "Hiba a frissítéskor" : e.getMessage());
         });
+    }
+
+    private void stopAuto() {
+        Async.handler().removeCallbacks(autoTick);
+        autoAt = 0;
     }
 
     private void setSpinning(boolean on) {
@@ -496,6 +597,7 @@ public class MainActivity extends AppCompatActivity {
     /** Kilépés (a beállításokból): vissza a belépő képernyőre. */
     public void logout(boolean deleteData) {
         St.flushNow();
+        stopAuto();
         if (deleteData) Store.deleteAll(); else Store.logout();
         showLogin(null);
     }

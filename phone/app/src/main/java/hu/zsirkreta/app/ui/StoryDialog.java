@@ -63,11 +63,18 @@ public final class StoryDialog {
         Double avg; List<Tile> items = new ArrayList<>(); int count;
     }
 
+    private static final int INK = Theme.INK;
+    private static final int[] HL = {0xFFFFE14D, 0xFF5CC8FF, 0xFFFF5FA2, 0xFF45E3A0, 0xFFFF9F43, 0xFFB79CFF};   // szövegkiemelő színek a csempékhez
+
+    /** A webes story.js témái: Íróasztal (sötét dió), Kiemelő (a kiemelő szín), Világos. card = az átlag sötét foltja. */
     private static Th theme(String k) {
         switch (k) {
-            case "dark": return new Th("Sötét", new int[]{0xFF0D0E1A, 0xFF1C1F4A}, 0xFFEEF0FF, 0xB3EEF0FF, 0x14FFFFFF, 0x29FFFFFF);
-            case "light": return new Th("Világos", new int[]{0xFFF3F4FB, 0xFFDFE2F6}, 0xFF1B1D3A, 0xA61B1D3A, 0xD9FFFFFF, 0x1A1B1D3A);
-            default: return new Th("Színes", null, 0xFFFFFFFF, 0xC7FFFFFF, 0x29FFFFFF, 0x47FFFFFF);
+            case "dark": return new Th("Sötét", new int[]{0xFF221A15, 0xFF221A15}, 0xFFF6EFE6, 0xB8F6EFE6, 0xFF2D231D, 0);
+            case "light": return new Th("Világos", new int[]{0xFFEEF1FA, 0xFFEEF1FA}, INK, 0xA61D1510, INK, 0);
+            default: {
+                boolean light = Theme.onAccent == INK;
+                return new Th("Színes", null, light ? INK : Color.WHITE, light ? 0xB81D1510 : 0xBFFFFFFF, INK, 0);
+            }
         }
     }
 
@@ -128,30 +135,16 @@ public final class StoryDialog {
         }
     }
 
-    private static void card(Canvas c, float x, float y, float w, float h, float r, Th th) {
-        Paint f = new Paint(Paint.ANTI_ALIAS_FLAG);
-        f.setColor(th.card);
-        c.drawRoundRect(new RectF(x, y, x + w, y + h), r, r, f);
-        Paint s = new Paint(Paint.ANTI_ALIAS_FLAG);
-        s.setStyle(Paint.Style.STROKE); s.setStrokeWidth(3); s.setColor(th.border);
-        c.drawRoundRect(new RectF(x, y, x + w, y + h), r, r, s);
-    }
-
     static void draw(Context ctx, Bitmap bmp, String themeKey, String name, String footer, Double avg, int count, List<Tile> items) {
         Canvas c = new Canvas(bmp);
         Th th = theme(themeKey);
         int acc = Theme.accent;
         Paint bg = new Paint(Paint.ANTI_ALIAS_FLAG);
         int c1, c2;
-        if (th.bg == null) { c1 = Theme.mix(acc, Color.BLACK, 0.15f); c2 = Theme.mix(acc, Color.WHITE, 0.05f); }
+        if (th.bg == null) { c1 = acc; c2 = acc; }
         else { c1 = th.bg[0]; c2 = th.bg[1]; }
         bg.setShader(new LinearGradient(0, 0, W * 0.6f, H, c1, c2, Shader.TileMode.CLAMP));
         c.drawRect(0, 0, W, H, bg);
-
-        Paint deco = new Paint(Paint.ANTI_ALIAS_FLAG);
-        deco.setColor(themeKey.equals("light") ? Theme.withAlpha(Theme.mix(acc, Color.WHITE, 0.75f), 0.53f) : 0x12FFFFFF);
-        c.drawCircle(W - 120, 330, 380, deco);
-        c.drawCircle(60, H - 360, 320, deco);
 
         // logó + név
         Paint lg = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -167,22 +160,34 @@ public final class StoryDialog {
         Paint hd = paint(th.sub, 44, false, Paint.Align.CENTER);
         c.drawText(name.isEmpty() ? "Erre vagyok büszke" : name + " ezzel büszkélkedhet", W / 2f, 580, hd);
 
-        // nagy átlag kártya
-        card(c, 80, 620, W - 160, 330, 56, th);
-        c.drawText(Fmt.f2(avg), W / 2f, 810, paint(th.text, 190, true, Paint.Align.CENTER));
-        c.drawText("átlag · " + count + " jegy alapján", W / 2f, 890, paint(th.sub, 42, false, Paint.Align.CENTER));
+        // nagy átlag: sötét folt, sárga számmal
+        Paint spot = new Paint(Paint.ANTI_ALIAS_FLAG);
+        spot.setColor(th.card);
+        c.drawRoundRect(new RectF(80, 620, W - 80, 950), 56, 56, spot);
+        c.drawText(Fmt.f2(avg), W / 2f, 820, paint(0xFFFFE14D, 200, true, Paint.Align.CENTER));
+        c.drawText("átlag, " + count + " jegy alapján", W / 2f, 900, paint(0xC7F6EFE6, 40, false, Paint.Align.CENTER));
 
         // csempék
         final int cols = 2, tw = 440, tH = 200, gap = 40, startY = 990;
+        // a háttérrel (pl. sárga kiemelő szín) majdnem egyező kiemelőszínt kihagyjuk, különben a csempe beleolvadna
+        List<Integer> hl = new ArrayList<>();
+        for (int h : HL) {
+            int dr = Color.red(h) - Color.red(c1), dg = Color.green(h) - Color.green(c1), db = Color.blue(h) - Color.blue(c1);
+            if (dr * dr + dg * dg + db * db > 70 * 70) hl.add(h);
+        }
+        if (hl.isEmpty()) hl.add(INK);
         for (int i = 0; i < items.size(); i++) {
             Tile it = items.get(i);
             float x = 80 + (i % cols) * (tw + gap), y = startY + (i / cols) * (tH + 28);
-            card(c, x, y, tw, tH, 40, th);
-            c.drawText(it.icon, x + 32, y + 100, paint(th.text, 64, false, Paint.Align.LEFT));
-            Paint v = paint(th.text, 92, true, Paint.Align.LEFT);
+            // csempék: mindegyik egy kiemelőszín, sötét szöveggel
+            Paint tile = new Paint(Paint.ANTI_ALIAS_FLAG);
+            tile.setColor(hl.get(i % hl.size()));
+            c.drawRoundRect(new RectF(x, y, x + tw, y + tH), 40, 40, tile);
+            c.drawText(it.icon, x + 32, y + 100, paint(INK, 64, false, Paint.Align.LEFT));
+            Paint v = paint(INK, 92, true, Paint.Align.LEFT);
             fit(v, it.value, tw - 190, 92);
             c.drawText(it.value, x + 130, y + 104, v);
-            Paint lb = paint(th.sub, 30, false, Paint.Align.LEFT);
+            Paint lb = paint(0xC71D1510, 30, false, Paint.Align.LEFT);
             wrap(c, lb, it.label, x + 32, y + 150, tw - 64, 34, 2);
         }
 
