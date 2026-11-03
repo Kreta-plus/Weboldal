@@ -13,8 +13,8 @@ DEFAULTS = {
     "displayName": "",
     "nickname": "",
     "emoji": "🎓",
-    "theme": "auto",          # auto | dark | light | amoled
-    "accent": "#6c5ce7",
+    "theme": "dark",          # auto | dark | light | amoled
+    "accent": "#ffe14d",
     "density": "normal",      # compact | normal | cozy
     "fontScale": 1.0,
     "radius": 16,
@@ -96,7 +96,7 @@ def sanitize(d):
     out["displayName"] = _str(d.get("displayName"), 60)
     out["nickname"] = _str(d.get("nickname"), 40)
     out["emoji"] = _str(d.get("emoji"), 8) or DEFAULTS["emoji"]
-    out["theme"] = d.get("theme") if d.get("theme") in THEMES else "auto"
+    out["theme"] = d.get("theme") if d.get("theme") in THEMES else "dark"
     acc = d.get("accent")
     out["accent"] = acc if isinstance(acc, str) and re.fullmatch(r"#[0-9a-fA-F]{6}", acc) else DEFAULTS["accent"]
     out["density"] = d.get("density") if d.get("density") in DENSITY else "normal"

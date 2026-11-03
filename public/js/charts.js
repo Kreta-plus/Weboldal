@@ -1,7 +1,7 @@
 // Kis SVG diagramkönyvtár, külső függőség nélkül.
 import { esc } from "./util.js";
 
-const COL = ["#6c5ce7", "#2ecc8f", "#f4c542", "#ef5b5b", "#38bdf8", "#f39a3d", "#d946ef", "#8bd450"];
+const COL = ["#ffe14d", "#5cc8ff", "#ff5fa2", "#45e3a0", "#ff9f43", "#b79cff", "#c6f25c", "#7de3ff"];
 export const palette = (i) => COL[i % COL.length];
 
 export function bars({ items, max, h = 220, color, fmt = (v) => v, horizontal = false }) {

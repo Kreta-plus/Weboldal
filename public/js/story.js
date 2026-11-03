@@ -1,20 +1,17 @@
 // Instagram story kép (1080×1920): amire büszke lehetsz + az alkalmazás logója.
 import { S as ST, shownName, numericGrades, absences, avgOf, bySubject, subjName } from "./state.js";
-import { esc, f2 } from "./util.js";
+import { esc, f2, isLight } from "./util.js";
 
 const W = 1080, H = 1920;
-const FONT = '-apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+const FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif';
+const DISPLAY = '"URW Gothic", "Century Gothic", sans-serif'; // címek és számok, mint az oldalon
+const INK = "#121a33";
+const HL = ["#ffe14d", "#5cc8ff", "#ff5fa2", "#45e3a0", "#ff9f43", "#b79cff"]; // szövegkiemelő színek a csempékhez
 const THEMES = {
-  accent: { name: "Színes", text: "#fff", sub: "rgba(255,255,255,.78)", card: "rgba(255,255,255,.16)", border: "rgba(255,255,255,.28)" },
-  dark: { name: "Sötét", bg: ["#0d0e1a", "#1c1f4a"], text: "#eef0ff", sub: "rgba(238,240,255,.7)", card: "rgba(255,255,255,.08)", border: "rgba(255,255,255,.16)" },
-  light: { name: "Világos", bg: ["#f3f4fb", "#dfe2f6"], text: "#1b1d3a", sub: "rgba(27,29,58,.65)", card: "rgba(255,255,255,.85)", border: "rgba(27,29,58,.1)" },
+  night: { name: "Éjkék", bg: "#121a33", text: "#f3f5ff", sub: "rgba(243,245,255,.7)" },
+  accent: { name: "Kiemelő", text: INK, sub: "rgba(18,26,51,.72)" },
+  light: { name: "Világos", bg: "#eef1fa", text: INK, sub: "rgba(18,26,51,.65)" },
 };
-
-function mix(hex, to, t) {
-  const p = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
-  const a = p(hex), b = p(to);
-  return "#" + a.map((v, i) => Math.round(v + (b[i] - v) * t).toString(16).padStart(2, "0")).join("");
-}
 
 function collect() {
   const gs = numericGrades(), ab = absences(), now = Date.now();
@@ -41,10 +38,6 @@ function collect() {
 
 function rr(c, x, y, w, h, r) { c.beginPath(); c.roundRect(x, y, w, h, r); }
 
-function fit(c, text, max, size, weight = 700) {
-  let s = size;
-  do { c.font = `${weight} ${s}px ${FONT}`; s -= 2; } while (c.measureText(text).width > max && s > 20);
-}
 function wrap(c, text, x, y, max, lh, maxLines = 2) {
   const words = text.split(" "), lines = [];
   let line = "";
@@ -58,51 +51,45 @@ function wrap(c, text, x, y, max, lh, maxLines = 2) {
 }
 
 export function drawStory(canvas, o) {
-  const c = canvas.getContext("2d"), th = THEMES[o.theme], acc = ST.prefs.accent || "#6c5ce7";
+  const c = canvas.getContext("2d"), acc = ST.prefs.accent || "#ffe14d";
+  const th = { ...THEMES[o.theme] };
+  if (o.theme === "accent") { th.bg = acc; if (!isLight(acc)) { th.text = "#fff"; th.sub = "rgba(255,255,255,.75)"; } }
   canvas.width = W; canvas.height = H;
-  const g = c.createLinearGradient(0, 0, W * 0.6, H);
-  if (o.theme === "accent") { g.addColorStop(0, mix(acc, "#000000", 0.15)); g.addColorStop(1, mix(acc, "#ffffff", 0.05)); }
-  else { g.addColorStop(0, th.bg[0]); g.addColorStop(1, th.bg[1]); }
-  c.fillStyle = g; c.fillRect(0, 0, W, H);
-  // dekoratív körök
-  c.fillStyle = o.theme === "light" ? mix(acc, "#ffffff", 0.75) + "88" : "rgba(255,255,255,.07)";
-  c.beginPath(); c.arc(W - 120, 330, 380, 0, 7); c.fill();
-  c.beginPath(); c.arc(60, H - 360, 320, 0, 7); c.fill();
+  c.fillStyle = th.bg; c.fillRect(0, 0, W, H);
   c.textAlign = "center"; c.textBaseline = "alphabetic";
 
   // logó + név (a story felső biztonsági sávja alatt)
-  const lg = c.createLinearGradient(W / 2 - 80, 250, W / 2 + 80, 410);
-  lg.addColorStop(0, acc); lg.addColorStop(1, mix(acc, "#ffffff", 0.35));
-  c.save(); c.shadowColor = "rgba(0,0,0,.3)"; c.shadowBlur = 40; c.shadowOffsetY = 14;
-  rr(c, W / 2 - 80, 250, 160, 160, 48); c.fillStyle = lg; c.fill(); c.restore();
-  c.fillStyle = "#fff"; c.font = `800 84px ${FONT}`; c.fillText("K+", W / 2, 360);
-  c.fillStyle = th.text; c.font = `800 58px ${FONT}`; c.fillText("KRÉTA Plusz", W / 2, 490);
+  rr(c, W / 2 - 78, 250, 156, 156, 48); c.fillStyle = o.theme === "accent" ? INK : "#ffe14d"; c.fill();
+  c.font = `700 80px ${DISPLAY}`; c.textAlign = "left";
+  const kw = c.measureText("K").width, pw = c.measureText("+").width, lx = W / 2 - (kw + pw) / 2;
+  c.fillStyle = o.theme === "accent" ? "#ffe14d" : INK; c.fillText("K", lx, 356); c.fillStyle = "#e0307e"; c.fillText("+", lx + kw, 356);
+  c.textAlign = "center";
+  c.fillStyle = th.text; c.font = `700 60px ${DISPLAY}`; c.fillText("KRÉTA Plusz", W / 2, 490);
 
   // fejléc
-  c.fillStyle = th.sub; c.font = `600 44px ${FONT}`;
-  c.fillText(o.name ? `${o.name} ezzel büszkélkedhet` : "Erre vagyok büszke", W / 2, 580);
+  c.fillStyle = th.sub; c.font = `600 42px ${FONT}`;
+  c.fillText(o.name ? `${o.name} ezzel büszkélkedhet` : "Erre vagyok büszke", W / 2, 572);
 
-  // nagy átlag kártya
-  c.fillStyle = th.card; rr(c, 80, 620, W - 160, 330, 56); c.fill();
-  c.strokeStyle = th.border; c.lineWidth = 3; c.stroke();
-  c.fillStyle = th.text; c.font = `800 190px ${FONT}`; c.fillText(f2(o.avg), W / 2, 810);
-  c.fillStyle = th.sub; c.font = `600 42px ${FONT}`; c.fillText(`átlag · ${o.count} jegy alapján`, W / 2, 890);
+  // nagy átlag: sötét folt, sárga számmal
+  rr(c, 80, 620, W - 160, 330, 56); c.fillStyle = o.theme === "night" ? "#1b2546" : INK; c.fill();
+  c.fillStyle = "#ffe14d"; c.font = `700 200px ${DISPLAY}`; c.fillText(f2(o.avg), W / 2, 820);
+  c.fillStyle = "rgba(243,245,255,.75)"; c.font = `600 40px ${FONT}`; c.fillText(`átlag, ${o.count} jegy alapján`, W / 2, 900);
 
-  // csempék
+  // csempék: mindegyik egy kiemelőszín, sötét szöveggel
   const cols = 2, tw = 440, th_ = 200, gap = 40, startY = 990;
   o.items.forEach((it, i) => {
     const x = 80 + (i % cols) * (tw + gap), y = startY + Math.floor(i / cols) * (th_ + 28);
-    c.fillStyle = th.card; rr(c, x, y, tw, th_, 40); c.fill(); c.strokeStyle = th.border; c.lineWidth = 3; c.stroke();
-    c.textAlign = "left"; c.font = `64px ${FONT}`; c.fillStyle = th.text; c.fillText(it.icon, x + 32, y + 100);
-    fit(c, it.value, tw - 190, 92, 800); c.fillStyle = th.text; c.fillText(it.value, x + 130, y + 104);
-    c.fillStyle = th.sub; c.font = `600 30px ${FONT}`; wrap(c, it.label, x + 32, y + 150, tw - 64, 34, 2);
+    rr(c, x, y, tw, th_, 40); c.fillStyle = HL[i % HL.length]; c.fill();
+    c.textAlign = "left"; c.font = `60px ${FONT}`; c.fillStyle = INK; c.fillText(it.icon, x + 32, y + 98);
+    c.font = `700 88px ${DISPLAY}`; c.fillText(it.value, x + 124, y + 102);
+    c.fillStyle = "rgba(18,26,51,.78)"; c.font = `600 30px ${FONT}`; wrap(c, it.label, x + 32, y + 150, tw - 64, 34, 2);
     c.textAlign = "center";
   });
 
   // alsó felirat
   const rows = Math.ceil(o.items.length / cols), endY = startY + rows * (th_ + 28);
   const fy = Math.min(1640, Math.max(endY + 30, 1500));
-  c.fillStyle = th.text; c.font = `800 46px ${FONT}`;
+  c.fillStyle = th.text; c.font = `700 46px ${DISPLAY}`;
   c.fillText(o.footer || "Próbáld ki te is!", W / 2, fy + 40);
   c.fillStyle = th.sub; c.font = `600 34px ${FONT}`;
   c.fillText("Jegyek, órarend, statisztikák egy helyen", W / 2, fy + 92);
@@ -111,7 +98,7 @@ export function drawStory(canvas, o) {
 export function openStory() {
   const data = collect();
   if (!data.count) return alert("Még nincs jegy, amiből képet lehetne csinálni.");
-  const o = { theme: "accent", name: "", footer: "Próbáld ki te is: KRÉTA Plusz", ...data, items: data.items };
+  const o = { theme: "night", name: "", footer: "Próbáld ki te is: KRÉTA Plusz", ...data, items: data.items };
   const picked = new Set(data.items.filter((i) => i.on).map((i) => i.k));
   let useName = false;
   const bg = document.createElement("div");
@@ -155,4 +142,5 @@ export function openStory() {
     };
   }
   draw();
+  document.fonts.load(`700 40px ${DISPLAY}`).then(draw, () => {});
 }

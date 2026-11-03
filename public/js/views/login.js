@@ -5,7 +5,7 @@ export function renderLogin(root, onDone) {
   let mode = "form";
   const draw = () => {
     root.innerHTML = `<div class="login-wrap"><div class="card login">
-      <div class="hero"><div class="logo">K+</div><h1>KRÉTA Plusz</h1><div class="muted">Jegyek, órarend, statisztikák, a saját neveiddel.</div></div>
+      <div class="hero"><div class="logo">K<b>+</b></div><h1>KRÉTA Plusz</h1><div class="muted">Jegyek, órarend, statisztikák, a saját neveiddel.</div></div>
       ${mode === "form" ? `
       <form id="f" class="grid" style="gap:12px" autocomplete="on">
         <a href="#" id="alt" class="small btn primary login_via_kreta" style="text-align:center">Belépés a KRÉTA oldalán keresztül</a>

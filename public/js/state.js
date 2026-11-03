@@ -115,7 +115,8 @@ export function applyPrefs() {
   const dark = matchMedia("(prefers-color-scheme: dark)").matches;
   root.dataset.theme = p.theme === "auto" ? (dark ? "dark" : "light") : p.theme || "dark";
   root.dataset.density = p.density || "normal";
-  root.style.setProperty("--accent", p.accent || "#6c5ce7");
+  root.style.setProperty("--accent", p.accent || "#ffe14d");
+  root.style.setProperty("--on-accent", U.isLight(p.accent || "#ffe14d") ? "#121a33" : "#ffffff"); // olvasható szöveg a kiemelő színen
   root.style.setProperty("--fs", p.fontScale || 1);
   root.style.setProperty("--radius", (p.radius ?? 16) + "px");
   document.getElementById("user-css").textContent = p.customCss || "";

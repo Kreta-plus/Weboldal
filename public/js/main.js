@@ -38,7 +38,7 @@ function shell() {
   const hash = location.hash.slice(1);
   current = VIEWS[hash] ? hash : S.prefs.startView || "dashboard";
   const link = (k, cls = "") => { const [l, ic] = VIEWS[k]; return `<a data-v="${k}" href="#${k}" class="${cls}"><span class="ic">${ic}</span>${l}</a>`; };
-  app.innerHTML = `<div class="shell"><aside class="side"><div class="brand"><i>K+</i>KRÉTA Plusz</div>
+  app.innerHTML = `<div class="shell"><aside class="side"><div class="brand"><i>K<b>+</b></i>KRÉTA Plusz</div>
     <nav class="nav">${Object.keys(VIEWS).map((k) => link(k, PRIMARY.includes(k) ? "" : "sec")).join("")}
       <button class="more-btn" id="more" aria-expanded="false"><span class="ic">⋯</span>Továbbiak</button></nav>
     <div class="me"><div class="avatar">${esc(S.prefs.emoji || "🎓")}</div><div class="grow"><b>${esc(shownName())}</b><div class="small muted" id="fresh"></div></div>

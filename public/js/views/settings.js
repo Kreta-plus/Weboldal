@@ -3,7 +3,7 @@ import { get, post } from "../api.js";
 import { esc, toast, ago, iso } from "../util.js";
 import { randomDisclaimer } from "../funny.js";
 
-const SWATCHES = ["#6c5ce7", "#2ecc8f", "#38bdf8", "#f43f5e", "#f59e0b", "#d946ef", "#14b8a6", "#ef4444"];
+const SWATCHES = ["#ffe14d", "#ff5fa2", "#45e3a0", "#5cc8ff", "#ff9f43", "#b79cff", "#c6f25c", "#3d5cff"]; // szövegkiemelő színek
 const WIDGETS = { avg: "Összesítő számok", next: "Mai órák", grades: "Friss jegyek", homework: "Házik", tests: "Számonkérések", absences: "Hiányzások", trend: "Átlag-diagram", subjects: "Tantárgyi átlagok" };
 const CSS_PRESETS = {
   "Üveg": ".card{backdrop-filter:blur(12px);background:color-mix(in srgb,var(--surface) 65%,transparent)}",
