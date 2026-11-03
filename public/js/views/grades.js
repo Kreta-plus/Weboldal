@@ -3,6 +3,16 @@ import { esc, f2, fmtFull, gcls, toast } from "../util.js";
 import { gradeChip } from "./dashboard.js";
 
 let term = "all", q = "", open = new Set();
+let layout = "subj";   // "subj": tantárgyanként, "all": ömlesztve (minden jegy egy listában)
+let sortBy = "new";
+const SORTS = [["new", "Legújabb elöl"], ["old", "Legrégebbi elöl"], ["high", "Legjobb jegy elöl"], ["low", "Leggyengébb jegy elöl"], ["subj", "Tantárgy szerint"]];
+const sorters = {
+  new: (a, b) => b.date - a.date,
+  old: (a, b) => a.date - b.date,
+  high: (a, b) => b.value - a.value || b.date - a.date,
+  low: (a, b) => a.value - b.value || b.date - a.date,
+  subj: (a, b) => subjName(a.subject).localeCompare(subjName(b.subject), "hu") || b.date - a.date,
+};
 let sim = [];          // kipróbálós (még nem létező) jegyek: { id, subject, value, weight } – nem mentődnek
 let calcOpen = false;
 const WEIGHTS = [50, 100, 150, 200, 300];
@@ -60,11 +70,12 @@ export function render(root) {
   root.innerHTML = `
     <div class="topbar"><div><h1>Jegyek</h1><div class="sub">${subs.reduce((a, s) => a + s.list.length, 0)} jegy · átlag ${f2(avgOf(subs.flatMap((s) => s.list)))}</div></div>
       <div class="row wrap"><input class="input" id="q" placeholder="Keresés…" value="${esc(q)}" style="width:200px">
-      <div class="seg" id="term">${[["all", "Egész év"], ["1", "1. félév"], ["2", "2. félév"]].map(([k, l]) => `<button data-t="${k}" class="${term === k ? "on" : ""}">${l}</button>`).join("")}</div></div></div>
+      <div class="seg" id="term">${[["all", "Egész év"], ["1", "1. félév"], ["2", "2. félév"]].map(([k, l]) => `<button data-t="${k}" class="${term === k ? "on" : ""}">${l}</button>`).join("")}</div>
+      <div class="seg" id="lay">${[["subj", "Tantárgyanként"], ["all", "Ömlesztve"]].map(([k, l]) => `<button data-l="${k}" class="${layout === k ? "on" : ""}">${l}</button>`).join("")}</div></div></div>
     ${calc}
     ${terms.length ? `<div class="card" style="margin-bottom:var(--gap)"><h3>Félévi és év végi jegyek</h3><div class="row wrap">${terms.map((g) => `
       <div class="item"><span class="gr ${gcls(g.value)} term">${g.value ?? "·"}</span><div><b>${esc(subjName(g.subject))}</b><div class="small muted">${esc(g.mode || g.type)}</div></div></div>`).join("")}</div></div>` : ""}
-    <div class="grid" style="gap:12px">${subs.map((s) => {
+    ${layout === "all" ? flatList(subs.flatMap((s) => s.list)) : `<div class="grid" style="gap:12px">${subs.map((s) => {
       const target = goals[s.subject] || target0;
       const n = needed(s.list, target);
       const trendUp = s.list.length >= 4 ? avgOf(s.list.slice(0, 3)) - avgOf(s.list.slice(3)) : 0;
@@ -82,7 +93,7 @@ export function render(root) {
           <div class="list">${s.list.map((g) => `<div class="item">${gradeChip(g)}<div class="grow"><b>${esc(g.topic || g.mode || "Érdemjegy")}</b>
             <div class="small muted">${esc(g.mode)} · ${esc(teacherName(g.teacher))}</div></div><span class="small muted">${fmtFull(g.date)}</span></div>`).join("")}</div>
         </div></details>`;
-    }).join("") || `<div class="card empty">Nincs a szűrésnek megfelelő jegy</div>`}</div>`;
+    }).join("") || `<div class="card empty">Nincs a szűrésnek megfelelő jegy</div>`}</div>`}`;
 
   root.querySelector("#calc").addEventListener("toggle", (e) => (calcOpen = e.target.open));
   root.querySelectorAll(".simform").forEach((f) => (f.querySelector(".sf-add").onclick = (e) => {
@@ -99,6 +110,8 @@ export function render(root) {
   root.querySelectorAll(".simclr-s").forEach((b) => (b.onclick = (e) => { e.preventDefault(); e.stopPropagation(); sim = sim.filter((x) => x.subject !== b.dataset.s); render(root); }));
   root.querySelector("#simclr")?.addEventListener("click", () => { sim = []; render(root); });
   root.querySelector("#q").oninput = (e) => { q = e.target.value.toLowerCase(); const p = e.target.selectionStart; render(root); const n = root.querySelector("#q"); n.focus(); n.setSelectionRange(p, p); };
+  root.querySelectorAll("#lay button").forEach((b) => (b.onclick = () => { layout = b.dataset.l; render(root); }));
+  root.querySelector("#sort")?.addEventListener("change", (e) => { sortBy = e.target.value; render(root); });
   root.querySelectorAll("#term button").forEach((b) => (b.onclick = () => { term = b.dataset.t; render(root); }));
   root.querySelectorAll("details.subj").forEach((d) => d.addEventListener("toggle", () => (d.open ? open.add(d.dataset.s) : open.delete(d.dataset.s))));
   root.querySelectorAll("input.goal").forEach((i) => {
@@ -107,3 +120,15 @@ export function render(root) {
   });
 }
 const subjNameLower = (s) => subjName(s);
+
+// ömlesztett nézet: minden jegy egy listában, választható sorrendben
+function flatList(list) {
+  if (!list.length) return `<div class="card empty">Nincs a szűrésnek megfelelő jegy</div>`;
+  const sorted = [...list].sort(sorters[sortBy] || sorters.new);
+  return `<div class="card"><h3>Összes jegy <small>${list.length} db · átlag ${f2(avgOf(list))}</small></h3>
+    <label class="row small muted" style="margin-bottom:10px">Sorrend
+      <select class="input" id="sort" style="width:auto">${SORTS.map(([k, l]) => `<option value="${k}" ${sortBy === k ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+    <div class="list">${sorted.map((g) => `<div class="item">${gradeChip(g)}<div class="grow"><b>${esc(subjName(g.subject))}</b>
+      <div class="small muted">${esc([g.topic, g.mode, teacherName(g.teacher)].filter(Boolean).join(" · ") || "Érdemjegy")}</div></div>
+      <span class="small muted nowrap">${fmtFull(g.date)}${g.weight !== 1 ? `<br>${Math.round(g.weight * 100)}%` : ""}</span></div>`).join("")}</div></div>`;
+}

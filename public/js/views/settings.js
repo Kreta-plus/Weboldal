@@ -70,57 +70,67 @@ function cssComplete(ta, onChange) {
   pop.addEventListener("mousedown", (e) => { const d = e.target.closest(".ac-i"); if (d) { e.preventDefault(); accept(items[+d.dataset.i]); } });
 }
 
+// témakörök: [kulcs, név, ikon]
+const SECTIONS = [["look", "Megjelenés", "🎨"], ["home", "Kezdőlap", "🏠"], ["grades", "Jegyek", "📘"], ["css", "Egyedi CSS", "🧩"], ["account", "Fiók és adatok", "🔐"], ["dev", "Fejlesztői", "🛠️"]];
+let section = "look";
+
 export async function render(root) {
   const p = ST.prefs;
   let sessions = [];
   try { sessions = await get("/api/auth/sessions"); } catch {}
   const subs = allSubjects();
-  root.innerHTML = `<div class="topbar"><div><h1>Beállítások</h1><div class="sub">Minden automatikusan mentődik.</div></div></div>
-  <div class="grid g2">
-    <div class="card"><h3>Megjelenés</h3><div class="grid" style="gap:14px">
-      <div><div class="small muted" style="margin-bottom:6px">Téma</div><div class="seg" data-seg="theme">${[["auto", "Auto"], ["dark", "Sötét"], ["light", "Világos"], ["amoled", "AMOLED"]].map(([k, l]) => `<button data-v="${k}" class="${p.theme === k ? "on" : ""}">${l}</button>`).join("")}</div></div>
-      <div><div class="small muted" style="margin-bottom:6px">Kiemelő szín</div><div class="row wrap">${SWATCHES.map((c) => `<button class="btn sm sw" data-c="${c}" style="background:${c};width:30px;height:30px;padding:0;border-radius:50%;${p.accent === c ? "outline:3px solid var(--text)" : ""}"></button>`).join("")}
-        <input type="color" id="acc" value="${p.accent}" style="width:40px;height:34px;border:0;background:none;cursor:pointer"></div></div>
-      <div><div class="small muted" style="margin-bottom:6px">Sűrűség</div><div class="seg" data-seg="density">${[["compact", "Tömör"], ["normal", "Normál"], ["cozy", "Tágas"]].map(([k, l]) => `<button data-v="${k}" class="${p.density === k ? "on" : ""}">${l}</button>`).join("")}</div></div>
-      <label class="f">Betűméret (${Math.round(p.fontScale * 100)}%)<input type="range" id="fs" min="0.85" max="1.3" step="0.05" value="${p.fontScale}"></label>
-      <label class="f">Lekerekítés (${p.radius}px)<input type="range" id="rd" min="0" max="28" step="1" value="${p.radius}"></label>
-      <label class="f">Kezdőoldal<select class="input" id="sv">${[["dashboard", "Kezdőlap"], ["grades", "Jegyek"], ["stats", "Statisztikák"], ["timetable", "Órarend"], ["homework", "Házi"]].map(([k, l]) => `<option value="${k}" ${p.startView === k ? "selected" : ""}>${l}</option>`).join("")}</select></label>
-      <label class="switch"><input type="checkbox" id="fq" ${p.funnyQuips !== false ? "checked" : ""}><span>Vicces szöveg a kezdőlapon (a holnapi órák alapján)</span></label>
-    </div></div>
+  const row = (label, desc, control, wide = false) => `<div class="set-row ${wide ? "wide" : ""}"><div class="set-l"><b>${label}</b>${desc ? `<div class="small muted">${desc}</div>` : ""}</div><div class="set-c">${control}</div></div>`;
+  const toggle = (id, on, cls = "", data = "") => `<label class="switch"><input type="checkbox" ${id ? `id="${id}"` : ""} class="${cls}" ${data} ${on ? "checked" : ""}><span class="sr">be/ki</span></label>`;
+  const sec = (k, html) => `<section class="set-sec card" data-sec="${k}" ${section === k ? "" : "hidden"}>${html}</section>`;
 
-    <div class="card"><h3>Jegyek és átlag</h3><div class="grid" style="gap:14px">
-      <label class="switch"><input type="checkbox" id="wt" ${p.weighted !== false ? "checked" : ""}><span>Súlyozott átlag (a KRÉTA súlyai szerint)</span></label>
-      <label class="f">Célátlag<input class="input" type="number" id="ta" min="1" max="5" step="0.1" value="${p.targetAvg}"></label>
-      <div><div class="small muted" style="margin-bottom:6px">Kezdőlap elemei</div><div class="grid" style="gap:8px">${Object.entries(WIDGETS).map(([k, l]) => `<label class="switch"><input type="checkbox" class="wg" data-k="${k}" ${p.widgets.includes(k) ? "checked" : ""}><span>${l}</span></label>`).join("")}</div></div>
-      <div><div class="small muted" style="margin-bottom:6px">Elrejtett tantárgyak (kiesnek az átlagból)</div><div class="chips">${subs.map((s) => `<label class="chip" style="cursor:pointer"><input type="checkbox" class="hs" data-s="${esc(s)}" ${p.hiddenSubjects.includes(s) ? "checked" : ""}> ${esc(subjName(s))}</label>`).join("")}</div></div>
-    </div></div>
+  root.innerHTML = `<div class="topbar"><div><h1>Beállítások</h1><div class="sub">Minden változás azonnal mentődik.</div></div></div>
+  <div class="settings">
+    <nav class="set-nav" aria-label="Beállítások témakörei">${SECTIONS.map(([k, l, ic]) => `<button data-sec="${k}" class="${section === k ? "on" : ""}"><span aria-hidden="true">${ic}</span>${l}</button>`).join("")}</nav>
+    <div class="set-body">
+    ${sec("look", `<h3>Megjelenés</h3>
+      ${row("Téma", "Az Auto a telefonod vagy géped beállítását követi.", `<div class="seg" data-seg="theme">${[["auto", "Auto"], ["dark", "Sötét"], ["light", "Világos"], ["amoled", "AMOLED"]].map(([k, l]) => `<button data-v="${k}" class="${p.theme === k ? "on" : ""}">${l}</button>`).join("")}</div>`)}
+      ${row("Kiemelő szín", "Gombok, aktív menüpont és kiemelések színe.", `<div class="row wrap">${SWATCHES.map((c) => `<button class="btn sm sw" data-c="${c}" title="${c}" style="background:${c};width:30px;height:30px;padding:0;border-radius:50%;${p.accent === c ? "outline:3px solid var(--text);outline-offset:2px" : ""}"></button>`).join("")}
+        <input type="color" id="acc" value="${p.accent}" title="Saját szín" style="width:40px;height:34px;border:0;background:none;cursor:pointer"></div>`)}
+      ${row("Sűrűség", "Mennyi hely legyen az elemek között.", `<div class="seg" data-seg="density">${[["compact", "Tömör"], ["normal", "Normál"], ["cozy", "Tágas"]].map(([k, l]) => `<button data-v="${k}" class="${p.density === k ? "on" : ""}">${l}</button>`).join("")}</div>`)}
+      ${row(`Betűméret <span class="muted">${Math.round(p.fontScale * 100)}%</span>`, "", `<input type="range" id="fs" min="0.85" max="1.3" step="0.05" value="${p.fontScale}">`)}
+      ${row(`Lekerekítés <span class="muted">${p.radius} px</span>`, "A lapok és gombok sarkai.", `<input type="range" id="rd" min="0" max="28" step="1" value="${p.radius}">`)}`)}
 
-    <div class="card span2"><h3>Egyedi CSS <small>saját kinézet, csak nálad</small></h3>
+    ${sec("home", `<h3>Kezdőlap</h3>
+      ${row("Kezdőoldal", "Ez nyílik meg, amikor belépsz.", `<select class="input" id="sv">${[["dashboard", "Kezdőlap"], ["grades", "Jegyek"], ["stats", "Statisztikák"], ["timetable", "Órarend"], ["homework", "Házi"]].map(([k, l]) => `<option value="${k}" ${p.startView === k ? "selected" : ""}>${l}</option>`).join("")}</select>`)}
+      ${row("Vicces szöveg", "Egy mondat a holnapi órák alapján a Kezdőlap tetején.", toggle("fq", p.funnyQuips !== false))}
+      ${row("A Kezdőlapon látszik", "Kapcsold ki, amire nincs szükséged.", `<div class="set-list">${Object.entries(WIDGETS).map(([k, l]) => `<label class="switch"><input type="checkbox" class="wg" data-k="${k}" ${p.widgets.includes(k) ? "checked" : ""}><span>${l}</span></label>`).join("")}</div>`, true)}`)}
+
+    ${sec("grades", `<h3>Jegyek és átlag</h3>
+      ${row("Súlyozott átlag", "A KRÉTA súlyai szerint számol (pl. a témazáró 200%).", toggle("wt", p.weighted !== false))}
+      ${row("Célátlag", "Ehhez méri, hány jó jegy kell még.", `<input class="input" type="number" id="ta" min="1" max="5" step="0.1" value="${p.targetAvg}" style="width:110px">`)}
+      ${row("Elrejtett tantárgyak", "A bejelölt tárgyak kimaradnak az átlagból és a statisztikából.", subs.length ? `<div class="chips">${subs.map((s) => `<label class="chip" style="cursor:pointer"><input type="checkbox" class="hs" data-s="${esc(s)}" ${p.hiddenSubjects.includes(s) ? "checked" : ""}> ${esc(subjName(s))}</label>`).join("")}</div>` : `<span class="small muted">Még nincs betöltött tantárgy.</span>`, true)}
+      ${row("Jótanuló mód 🎓", "Minden jegy 5-ösként látszik, csak a te kijelződön. Bekapcsoláskor el kell fogadnod egy nyilatkozatot.", toggle("gs", p.goodStudent))}`)}
+
+    ${sec("css", `<h3>Egyedi CSS <small>saját kinézet, csak nálad</small></h3>
       <div class="chips" style="margin-bottom:10px">${Object.keys(CSS_PRESETS).map((k) => `<button class="btn sm pre" data-k="${esc(k)}">+ ${esc(k)}</button>`).join("")}<button class="btn sm danger" id="cssclr">Törlés</button></div>
       <details class="cls-d"><summary>Osztály beszúrása a kurzorhoz (${CSS_CLASSES.length})</summary><div class="clsgrid">${CSS_CLASSES.map(([c, d]) => `<button class="btn sm cls" data-c="${esc(c)}"><b>.${esc(c)}</b><span>${esc(d)}</span></button>`).join("")}</div></details>
       <div class="acwrap"><textarea class="input" id="css" spellcheck="false" placeholder="pl. .card { border-radius: 4px; } — írj egy . -ot vagy tulajdonságot a javaslatokhoz">${esc(p.customCss)}</textarea></div>
-      <div class="small muted" style="margin-top:6px">Használható változók: --accent, --bg, --surface, --text, --muted, --radius, --g1…--g5. Külső url() és @import nem engedett.</div></div>
+      <div class="small muted" style="margin-top:6px">Használható változók: --accent, --bg, --surface, --text, --muted, --radius, --g1…--g5. Külső url() és @import nem engedett.</div>`)}
 
-    <div class="card"><h3>Jótanuló mód <small>🎓</small></h3><div class="grid" style="gap:12px">
-      <label class="switch"><input type="checkbox" id="gs" ${p.goodStudent ? "checked" : ""}><span>Jótanuló mód: minden jegy 5-ös</span></label>
-      <div class="small muted">Csak a te kijelződön látszik így, a KRÉTA-ban a jegyek nem változnak. Bekapcsoláskor el kell fogadnod egy nyilatkozatot.</div>
-    </div></div>
+    ${sec("account", `<h3>Fiók és adatok</h3>
+      ${row("Beállítások mentése", "Lementheted fájlba, és másik eszközön visszatöltheted.", `<div class="row wrap"><button class="btn" id="exp">Exportálás</button><label class="btn" style="cursor:pointer">Importálás<input type="file" id="imp" accept="application/json" hidden></label></div>`)}
+      ${row("Belépett eszközök", "A jelszavad nincs eltárolva. A szerver titkosítva tárol egy megújító tokent, ezért nem kell újra belépned.", `<div class="list">${sessions.map((s) => `<div class="item"><div class="grow small"><b>${s.current ? "Ez az eszköz" : "Másik eszköz"}</b><div class="muted" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.ua || "")}</div></div><span class="small muted">${ago(s.lastSeen)}</span></div>`).join("")}</div>`, true)}
+      ${row("Kilépés", "", `<div class="row wrap"><button class="btn" id="lo">Kilépés</button><button class="btn" id="loa">Kilépés mindenhonnan</button></div>`)}
+      ${row("Fiók törlése", "Törli a fiókodat és minden mentett adatot (beállítások, nevek, saját házik). Nem vonható vissza.", `<button class="btn danger" id="del">Fiók és adatok törlése</button>`)}`)}
 
-    <div class="card"><h3>Developer mód <small>fejlesztői eszközök</small></h3><div class="grid" style="gap:14px">
-      <label class="switch"><input type="checkbox" id="dev" ${p.devMode ? "checked" : ""}><span>Developer mód bekapcsolása</span></label>
-      ${p.devMode ? `<label class="switch"><input type="checkbox" id="devfill" ${p.devFillLessons ? "checked" : ""}><span>Táska: ha holnap nincs óra, véletlen órákkal töltse fel</span></label>
-      <label class="switch"><input type="checkbox" id="devtt" ${p.devFillTimetable ? "checked" : ""}><span>Órarend: az üres tanítási napokat töltse fel teszt órákkal</span></label>
-      <div class="row wrap"><button class="btn" id="devhw">+ Teszt házi holnapra</button><button class="btn danger" id="devhwclr">Teszt házik törlése</button></div>
-      <div class="small muted">A teszt házi egy véletlen tantárgyhoz kerül, holnapi határidővel (saját házik közé, „[teszt]” előtaggal).</div>` : ""}
-    </div></div>
-
-    <div class="card"><h3>Adatok és biztonság</h3><div class="grid" style="gap:10px">
-      <div class="small muted">A jelszavad nincs eltárolva. A szerver titkosítva tárol egy megújító tokent, ezért nem kell újra belépned.</div>
-      <div class="row wrap"><button class="btn" id="exp">Beállítások exportja</button><label class="btn" style="cursor:pointer">Import<input type="file" id="imp" accept="application/json" hidden></label></div>
-      <div class="list">${sessions.map((s) => `<div class="item"><div class="grow small"><b>${s.current ? "Ez az eszköz" : "Másik eszköz"}</b><div class="muted" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px">${esc(s.ua || "")}</div></div><span class="small muted">${ago(s.lastSeen)}</span></div>`).join("")}</div>
-      <div class="row wrap"><button class="btn" id="lo">Kilépés</button><button class="btn" id="loa">Kilépés mindenhonnan</button><button class="btn danger" id="del">Fiók és adatok törlése</button></div></div></div>
+    ${sec("dev", `<h3>Fejlesztői eszközök</h3>
+      ${row("Developer mód", "Teszteléshez: kitalált órák és házik.", toggle("dev", p.devMode))}
+      ${p.devMode ? `${row("Táska: véletlen órák", "Ha holnap nincs óra, véletlen órákkal tölti fel a Táskát.", toggle("devfill", p.devFillLessons))}
+      ${row("Órarend: teszt órák", "Az üres tanítási napokat teszt órákkal tölti fel.", toggle("devtt", p.devFillTimetable))}
+      ${row("Teszt házi", "Egy véletlen tantárgyhoz kerül, holnapi határidővel, „[teszt]” előtaggal a saját házik közé.", `<div class="row wrap"><button class="btn" id="devhw">+ Teszt házi holnapra</button><button class="btn danger" id="devhwclr">Teszt házik törlése</button></div>`)}` : ""}`)}
+    </div>
   </div>`;
 
+  root.querySelectorAll(".set-nav button").forEach((b) => (b.onclick = () => {
+    section = b.dataset.sec;
+    root.querySelectorAll(".set-nav button").forEach((x) => x.classList.toggle("on", x === b));
+    root.querySelectorAll(".set-sec").forEach((x) => (x.hidden = x.dataset.sec !== section));
+  }));
   root.querySelectorAll("[data-seg]").forEach((seg) => seg.querySelectorAll("button").forEach((b) => (b.onclick = () => { savePrefs({ [seg.dataset.seg]: b.dataset.v }); render(root); })));
   root.querySelectorAll(".sw").forEach((b) => (b.onclick = () => { savePrefs({ accent: b.dataset.c }); render(root); }));
   root.querySelector("#acc").oninput = (e) => savePrefs({ accent: e.target.value });

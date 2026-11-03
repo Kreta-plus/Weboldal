@@ -1,5 +1,5 @@
-/* KRÉTA Plusz – „Kiemelő éjjel”
-   Sötét, telefonos app jellegű felület éjkék alapon. A hangsúlyt a szövegkiemelők színei adják
+/* KRÉTA Plusz – „Kiemelő az íróasztalon”
+   Sötét, telefonos app jellegű felület meleg, sötét dió (íróasztal) alapon. A hangsúlyt a szövegkiemelők színei adják
    (sárga, rózsa, menta, égkék, narancs), rajtuk mindig sötét a szöveg. Jegyek és összesítők = kiemelőfoltok.
    Az egyedi CSS-hez dokumentált változók (--accent, --bg, --surface, --text, --muted, --radius, --g1…--g5) megmaradtak. */
 
@@ -8,30 +8,30 @@
 
 :root {
   --accent: #ffe14d;
-  --on-accent: #121a33;           /* a JS a kiemelő szín világossága alapján állítja */
+  --on-accent: #1d1510;           /* a JS a kiemelő szín világossága alapján állítja */
   --radius: 16px;
   --fs: 1;
   --pad: 18px;
   --gap: 14px;
   --font: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Ubuntu, sans-serif;
   --font-display: "URW Gothic", "Century Gothic", "Avant Garde", var(--font);
-  --ink: #121a33;                 /* sötét szöveg a kiemelőfoltokon */
+  --ink: #1d1510;                 /* sötét szöveg a kiemelőfoltokon */
   --hl-yellow: #ffe14d; --hl-pink: #ff5fa2; --hl-mint: #45e3a0; --hl-sky: #5cc8ff; --hl-orange: #ff9f43;
   --accent-soft: color-mix(in srgb, var(--accent) 16%, transparent);
   --r-inner: max(4px, calc(var(--radius) - 6px)); /* belső elemek kisebb sugárral */
 }
-/* éjkék (alap sötét) */
+/* íróasztal: sötét dió (alap sötét) */
 html[data-theme="dark"] {
-  --bg: #121a33; --bg2: #0f1630; --surface: #1b2546; --surface2: #243159; --border: #33437a;
-  --text: #f3f5ff; --muted: #9aa6cc; --shadow: none;
+  --bg: #221a15; --bg2: #1a1410; --surface: #2d231d; --surface2: #3a2e26; --border: #4a3b31;
+  --text: #f6efe6; --muted: #b8a594; --shadow: none;
   --accent-strong: color-mix(in srgb, var(--accent) 88%, white);
   --g5: var(--hl-mint); --g4: var(--hl-sky); --g3: var(--hl-yellow); --g2: var(--hl-orange); --g1: var(--hl-pink);
   color-scheme: dark;
 }
 /* AMOLED: fekete alap, ugyanazok a kiemelők */
 html[data-theme="amoled"] {
-  --bg: #000; --bg2: #000; --surface: #0d1222; --surface2: #161d36; --border: #26304f;
-  --text: #f3f5ff; --muted: #8d98bd; --shadow: none;
+  --bg: #000; --bg2: #000; --surface: #120e0b; --surface2: #1c1612; --border: #2e2520;
+  --text: #f6efe6; --muted: #a8998b; --shadow: none;
   --accent-strong: color-mix(in srgb, var(--accent) 88%, white);
   --g5: var(--hl-mint); --g4: var(--hl-sky); --g3: var(--hl-yellow); --g2: var(--hl-orange); --g1: var(--hl-pink);
   color-scheme: dark;
@@ -248,6 +248,26 @@ svg.chart .grid { stroke: var(--border); stroke-width: 1; }
 .quip-ic { display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: 50%; background: var(--surface2); font-size: 1.3rem; }
 .quip-t { font-weight: 600; font-size: 1.0625rem; line-height: 1.4; max-width: 70ch; }
 
+/* ---------- beállítások: témakörlista + sorok (név és magyarázat balra, vezérlő jobbra) ---------- */
+.settings { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: var(--gap); align-items: start; }
+.set-nav { position: sticky; top: 24px; display: flex; flex-direction: column; gap: 2px; }
+.set-nav button { display: flex; align-items: center; gap: 10px; padding: 9px 14px; border: 0; background: none; border-radius: 999px; color: var(--muted); font-weight: 600; cursor: pointer; text-align: left; }
+.set-nav button:hover { background: var(--surface); color: var(--text); }
+.set-nav button.on { background: var(--accent); color: var(--on-accent); }
+.set-sec[hidden] { display: none; }
+.set-sec > h3 { font-size: 1.375rem; margin-bottom: 4px; }
+.set-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px 28px; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--border); }
+.set-row:last-child { border-bottom: 0; padding-bottom: 4px; }
+.set-row.wide { grid-template-columns: 1fr; }
+.set-l b { font-weight: 650; }
+.set-l .small { margin-top: 2px; max-width: 56ch; }
+.set-c { justify-self: end; min-width: 0; }
+.set-row.wide .set-c { justify-self: stretch; }
+.set-c input[type="range"] { width: min(260px, 100%); accent-color: var(--accent); }
+.set-c select.input { width: auto; min-width: 180px; }
+.set-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px 18px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
 /* ---------- beállítások: egyedi CSS ---------- */
 details.cls-d { margin-bottom: 10px; }
 details.cls-d > summary { cursor: pointer; font-weight: 600; color: var(--muted); margin-bottom: 8px; }
@@ -261,7 +281,7 @@ details.cls-d > summary { cursor: pointer; font-weight: 600; color: var(--muted)
 .ac-i.on, .ac-i:hover { background: var(--accent-soft); }
 
 /* ---------- felugró ablakok ---------- */
-.modal-bg { position: fixed; inset: 0; z-index: 200; background: rgba(6, 10, 24, .7); display: grid; place-items: center; padding: 16px; }
+.modal-bg { position: fixed; inset: 0; z-index: 200; background: rgba(14, 9, 6, .72); display: grid; place-items: center; padding: 16px; }
 .modal { width: min(440px, 100%); display: grid; gap: 12px; background: var(--surface); box-shadow: 0 24px 70px rgba(0, 0, 0, .45); }
 .modal .gs-text { font-size: 1.05rem; line-height: 1.5; margin: 0; padding: 14px 16px; border-radius: var(--r-inner); background: var(--hl-yellow); color: var(--ink); font-weight: 600; }
 .story-modal { width: min(900px, 100%); max-height: calc(100vh - 32px); overflow: auto; }
@@ -378,6 +398,16 @@ details.cls-d > summary { cursor: pointer; font-weight: 600; color: var(--muted)
   #pkx { position: absolute; top: 0; right: 0; }
   .pk-body h1 { font-size: 1.6em; }
   .pk-subs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .settings { grid-template-columns: 1fr; }
+  .set-nav { position: static; flex-direction: row; overflow-x: auto; scrollbar-width: none; margin: 0 -14px; padding: 0 14px 2px; }
+  .set-nav button { flex: none; white-space: nowrap; padding: 8px 14px; background: var(--surface); }
+  .set-row { grid-template-columns: 1fr; padding: 14px 0; }
+  .set-c { justify-self: stretch; }
+  .set-row:has(> .set-c > .switch:only-child) { grid-template-columns: minmax(0, 1fr) auto; }
+  .set-row:has(> .set-c > .switch:only-child) > .set-c { justify-self: end; }
+  .set-c input[type="range"] { width: 100%; }
+  .set-c select.input { width: 100%; }
+  .set-c .seg { display: flex; }
   #fh textarea, #ft textarea { min-height: 90px; }
 }
 @media (max-width: 380px) {

@@ -5,12 +5,12 @@ import { esc, f2, isLight } from "./util.js";
 const W = 1080, H = 1920;
 const FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif';
 const DISPLAY = '"URW Gothic", "Century Gothic", sans-serif'; // címek és számok, mint az oldalon
-const INK = "#121a33";
+const INK = "#1d1510";
 const HL = ["#ffe14d", "#5cc8ff", "#ff5fa2", "#45e3a0", "#ff9f43", "#b79cff"]; // szövegkiemelő színek a csempékhez
 const THEMES = {
-  night: { name: "Éjkék", bg: "#121a33", text: "#f3f5ff", sub: "rgba(243,245,255,.7)" },
-  accent: { name: "Kiemelő", text: INK, sub: "rgba(18,26,51,.72)" },
-  light: { name: "Világos", bg: "#eef1fa", text: INK, sub: "rgba(18,26,51,.65)" },
+  night: { name: "Íróasztal", bg: "#221a15", text: "#f6efe6", sub: "rgba(246,239,230,.72)" },
+  accent: { name: "Kiemelő", text: INK, sub: "rgba(29,21,16,.72)" },
+  light: { name: "Világos", bg: "#eef1fa", text: INK, sub: "rgba(29,21,16,.65)" },
 };
 
 function collect() {
@@ -71,9 +71,9 @@ export function drawStory(canvas, o) {
   c.fillText(o.name ? `${o.name} ezzel büszkélkedhet` : "Erre vagyok büszke", W / 2, 572);
 
   // nagy átlag: sötét folt, sárga számmal
-  rr(c, 80, 620, W - 160, 330, 56); c.fillStyle = o.theme === "night" ? "#1b2546" : INK; c.fill();
+  rr(c, 80, 620, W - 160, 330, 56); c.fillStyle = o.theme === "night" ? "#2d231d" : INK; c.fill();
   c.fillStyle = "#ffe14d"; c.font = `700 200px ${DISPLAY}`; c.fillText(f2(o.avg), W / 2, 820);
-  c.fillStyle = "rgba(243,245,255,.75)"; c.font = `600 40px ${FONT}`; c.fillText(`átlag, ${o.count} jegy alapján`, W / 2, 900);
+  c.fillStyle = "rgba(246,239,230,.78)"; c.font = `600 40px ${FONT}`; c.fillText(`átlag, ${o.count} jegy alapján`, W / 2, 900);
 
   // csempék: mindegyik egy kiemelőszín, sötét szöveggel
   const cols = 2, tw = 440, th_ = 200, gap = 40, startY = 990;
@@ -82,7 +82,7 @@ export function drawStory(canvas, o) {
     rr(c, x, y, tw, th_, 40); c.fillStyle = HL[i % HL.length]; c.fill();
     c.textAlign = "left"; c.font = `60px ${FONT}`; c.fillStyle = INK; c.fillText(it.icon, x + 32, y + 98);
     c.font = `700 88px ${DISPLAY}`; c.fillText(it.value, x + 124, y + 102);
-    c.fillStyle = "rgba(18,26,51,.78)"; c.font = `600 30px ${FONT}`; wrap(c, it.label, x + 32, y + 150, tw - 64, 34, 2);
+    c.fillStyle = "rgba(29,21,16,.78)"; c.font = `600 30px ${FONT}`; wrap(c, it.label, x + 32, y + 150, tw - 64, 34, 2);
     c.textAlign = "center";
   });
 
