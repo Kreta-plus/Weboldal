@@ -2,4 +2,6 @@
 zsirkreta/__pycache__
 *.pyc
 .venv
-/data
+data
+tanar/kreta_tanar/__pycache__
+tanar/kreta_tanar/*/__pycache__
