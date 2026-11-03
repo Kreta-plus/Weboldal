@@ -133,21 +133,25 @@ def link_start():
 @bp.post("/link/finish")
 def link_finish():
     d = request.get_json(silent=True) or {}
-    p = _pending.pop(request.cookies.get("kp_pid", ""), None)
-    if not p:
-        return jsonify(error="Előbb kattints a belépés gombra."), 400
+    pid = request.cookies.get("kp_pid", "")
+    if pid not in _pending:
+        return jsonify(error="Előbb kattints a „Belépés a KRÉTA-ban” gombra."), 400
     raw = (d.get("url") or "").strip()
     code = (parse_qs(urlparse(raw).query).get("code") or [""])[0]
     if not code and "?" not in raw and "/" not in raw and len(raw) >= 20:
         code = raw
     if not code:
         return jsonify(error="Nem találtam kódot a címben. A cím végén ?code=... kell legyen."), 400
+    # a kód egyszer használható, innentől a függő belépés is elhasználódik
+    p = _pending.pop(pid, None)
+    if not p:
+        return jsonify(error="Előbb kattints a „Belépés a KRÉTA-ban” gombra."), 400
     try:
         r, j = kreta.exchange_code(code, p[0])
     except requests.RequestException as e:
         return jsonify(error="A KRÉTA nem elérhető", detail=str(e)), 502
     if not r.ok or "access_token" not in j:
-        return jsonify(error="A kód beváltása nem sikerült", detail=j.get("error_description") or j.get("error")), 401
+        return jsonify(error="A kód beváltása nem sikerült. Kattints újra a „Belépés a KRÉTA-ban” gombra.", detail=j.get("error_description") or j.get("error")), 401
     inst = (d.get("inst") or "").strip()
     uid = kreta.save_user(inst or "?", None, j)
     return _start(uid, bool(d.get("remember", True)))
