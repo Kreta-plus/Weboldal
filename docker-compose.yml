@@ -12,6 +12,9 @@ services:
       KP_TRUST_PROXY: "1"         # proxy mögött: valódi IP és HTTPS a sütikhez; proxy nélkül 0
       # KP_GLITCHTIP_DSN: ""      # üresen kikapcsolja a hibakövetést
       # KP_DEMO: "0"              # teszt fiók kikapcsolása
+      KP_DISCORD_WEBHOOK: ${KP_DISCORD_WEBHOOK:-}  # titok: a compose a mellette lévő .env fájlból veszi
+      KP_DEV_CODE: ${KP_DEV_CODE:-}                # titok: ezzel csatolhatók a fejlesztői e-mail címek
+      # KP_DISCORD_INVITE: "https://discord.gg/..."  # a Kapcsolatok oldal meghívója
     volumes:
       - zsirkreta-data:/data
 

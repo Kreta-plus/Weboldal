@@ -50,6 +50,19 @@ export const sameDay = (a, b) => iso(a) === iso(b);
 export const fmtDate = (d) => { d = new Date(d); return isNaN(d) ? "" : `${MONTHS[d.getMonth()]} ${d.getDate()}.`; };
 export const fmtFull = (d) => { d = new Date(d); return isNaN(d) ? "" : `${d.getFullYear()}. ${MONTHS[d.getMonth()]} ${d.getDate()}.`; };
 export const fmtTime = (d) => { d = new Date(d); return isNaN(d) ? "" : `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; };
+// karbantartás ideje: „nov 6. (csütörtök) 20:00”, tartományként „… 20:00 – 22:00” (ha más nap, mindkét dátummal)
+export const fmtWhen = (ts) => { const d = new Date(ts * 1000); return `${fmtDate(d)} (${DAYS[(d.getDay() + 6) % 7].toLowerCase()}) ${fmtTime(d)}`; };
+export function fmtRange(from, until) {
+  if (from && until) return `${fmtWhen(from)} – ${sameDay(new Date(from * 1000), new Date(until * 1000)) ? fmtTime(new Date(until * 1000)) : fmtWhen(until)}`;
+  if (from) return `kezdete: ${fmtWhen(from)}`;
+  return until ? `várható vége: ${fmtWhen(until)}` : "";
+}
+// hátralévő idő: „kb. 1 óra 20 perc”
+export const fmtLeft = (sec) => {
+  const m = Math.ceil(sec / 60);
+  if (m <= 1) return "pár pillanat";
+  return m < 60 ? `kb. ${m} perc` : `kb. ${Math.floor(m / 60)} óra${m % 60 ? ` ${m % 60} perc` : ""}`;
+};
 export const ago = (ts) => {
   const s = Math.max(0, Date.now() / 1000 - ts);
   if (s < 60) return "most";

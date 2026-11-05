@@ -1,5 +1,8 @@
-"""Belépés: normál űrlap (tartós munkamenet), kilépés, fiók törlése, tartalék linkes belépés."""
+"""Belépés: normál űrlap (tartós munkamenet), e-mail cím, kilépés, fiók törlése, tartalék linkes belépés."""
+import hmac
+import re
 import secrets
+import sqlite3
 import time
 from urllib.parse import parse_qs, urlparse
 
@@ -7,16 +10,17 @@ import requests
 from flask import Blueprint, g, jsonify, make_response, request
 
 from .. import config as C
-from .. import db, demo, kreta, security
+from .. import db, demo, kreta, security, site
+from ..config import ADMIN_EMAILS, DEV_CODE
 
 bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
 _pending = {}  # pid -> (verifier, ts)
 
 
-def _start(uid, remember):
+def _start(uid, remember, **extra):
     sid, max_age = security.create_session(uid, remember)
-    resp = make_response(jsonify(ok=True))
+    resp = make_response(jsonify(ok=True, **extra))
     resp.set_cookie(
         security.COOKIE, sid, max_age=max_age if remember else None,
         httponly=True, samesite="Lax", secure=request.is_secure, path="/",
@@ -53,14 +57,15 @@ def login():
 @bp.post("/demo")
 def demo_login():
     """Teszt fiók: minden belépés új, különálló fiók véletlen adatokkal (jelszó és KRÉTA nélkül)."""
-    if not C.DEMO_ENABLED:
+    if not (C.DEMO_ENABLED and site.get()["demoEnabled"]):
         return jsonify(error="A teszt fiók ki van kapcsolva"), 403
     key = f"demo:{_client_ip()}"
     if security.too_many_attempts(key):
         return jsonify(error="Túl sok teszt fiók, várj pár percet", code="throttle"), 429
     security.record_attempt(key)
     now = time.time()
-    db.run("DELETE FROM users WHERE inst=? AND created<?", (demo.DEMO_INST, now - 7 * 86400))
+    # a régi teszt fiókok törlődnek, kivéve amihez e-mail címet csatoltak (azt meg akarták tartani)
+    db.run("DELETE FROM users WHERE inst=? AND created<? AND email IS NULL", (demo.DEMO_INST, now - 7 * 86400))
     uid = db.run(
         "INSERT INTO users(ukey,inst,username,name,created,last_login) VALUES(?,?,?,?,?,?)",
         (f"demo:{secrets.token_hex(8)}", demo.DEMO_INST, "teszt", "Teszt Elek", now, now),
@@ -75,8 +80,75 @@ def me():
         return jsonify(loggedIn=False)
     return jsonify(
         loggedIn=True,
-        user={"id": row["id"], "inst": row["inst"], "name": row["name"], "needsLogin": bool(row["needs_login"])},
+        user={"id": row["id"], "inst": row["inst"], "name": row["name"], "needsLogin": bool(row["needs_login"]),
+              "email": row["email"], "admin": security.is_admin(row)},
     )
+
+
+# ---- e-mailes belépés: a KRÉTA-fiókhoz csatolt e-mail címmel és saját jelszóval (visszaigazolás nincs) ----
+EMAIL_RE = re.compile(r"[^@\s]{1,64}@[^@\s]{1,189}\.[^@\s]{2,63}")
+
+
+def _email(v):
+    e = v.strip().lower() if isinstance(v, str) else ""
+    return e if EMAIL_RE.fullmatch(e) else ""
+
+
+@bp.post("/email/login")
+def email_login():
+    d = request.get_json(silent=True) or {}
+    email, pw = _email(d.get("email")), d.get("pass")
+    if not email or not isinstance(pw, str) or not pw:
+        return jsonify(error="Add meg az e-mail címed és a jelszavad"), 400
+    keys = (f"ip:{_client_ip()}", f"em:{email}")
+    if security.too_many_attempts(*keys):
+        return jsonify(error="Túl sok próbálkozás, várj pár percet", code="throttle"), 429
+    security.record_attempt(*keys)
+    row = db.one("SELECT id, email, pw_hash, admin FROM users WHERE email=?", (email,))
+    if not security.check_pw(pw, row["pw_hash"] if row else security.DUMMY_HASH) or not row:
+        return jsonify(error="Hibás e-mail cím vagy jelszó"), 401
+    security.clear_attempts(*keys)
+    db.run("UPDATE users SET last_login=? WHERE id=?", (time.time(), row["id"]))
+    return _start(row["id"], bool(d.get("remember", True)), admin=security.is_admin(row))
+
+
+@bp.post("/email")
+@security.login_required
+def email_set():
+    """E-mail cím és jelszó csatolása a belépett fiókhoz, vagy a jelszó cseréje."""
+    d = request.get_json(silent=True) or {}
+    email, pw, me = _email(d.get("email")), d.get("pass"), g.user
+    if not email:
+        return jsonify(error="Ez nem tűnik e-mail címnek"), 400
+    if not isinstance(pw, str) or not 8 <= len(pw) <= 200:
+        return jsonify(error="A jelszó legalább 8 karakter legyen"), 400
+    if db.one("SELECT 1 FROM users WHERE email=? AND id<>?", (email, me["id"])):
+        return jsonify(error="Ez az e-mail cím már egy másik fiókhoz tartozik"), 409
+    admin = me["admin"] if email == me["email"] else 0  # a már csatolt saját címnél marad, ami volt
+    if email in ADMIN_EMAILS and not admin:
+        # fejlesztői cím: visszaigazolás helyett a szerver fejlesztői kódja kell, különben bárki fejlesztő lehetne
+        if not DEV_CODE:
+            return jsonify(error="Fejlesztői címhez a szerveren be kell állítani a KP_DEV_CODE kódot", code="devcode"), 403
+        key = f"dev:{_client_ip()}"
+        if security.too_many_attempts(key):
+            return jsonify(error="Túl sok próbálkozás, várj pár percet", code="throttle"), 429
+        code = d.get("devCode").strip() if isinstance(d.get("devCode"), str) else ""
+        if not hmac.compare_digest(code.upper().encode(), DEV_CODE.upper().encode()):  # kis- és nagybetű mindegy
+            security.record_attempt(key)
+            return jsonify(error="Hibás fejlesztői kód" if code else "Ez fejlesztői cím: add meg a fejlesztői kódot", code="devcode"), 403
+        admin = 1
+    try:
+        db.run("UPDATE users SET email=?, pw_hash=?, admin=? WHERE id=?", (email, security.hash_pw(pw), admin, me["id"]))
+    except sqlite3.IntegrityError:  # közben valaki más csatolta ugyanezt
+        return jsonify(error="Ez az e-mail cím már egy másik fiókhoz tartozik"), 409
+    return jsonify(ok=True, email=email, admin=security.is_admin({"email": email, "admin": admin}))
+
+
+@bp.post("/email/remove")
+@security.login_required
+def email_remove():
+    db.run("UPDATE users SET email=NULL, pw_hash=NULL, admin=0 WHERE id=?", (g.user["id"],))
+    return jsonify(ok=True)
 
 
 @bp.post("/logout")

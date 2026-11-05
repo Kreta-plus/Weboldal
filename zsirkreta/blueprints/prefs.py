@@ -21,6 +21,8 @@ DEFAULTS = {
     "density": "normal",      # compact | normal | cozy
     "fontScale": 1.0,
     "radius": 16,
+    "transition": "fade",     # oldalváltás: none | fade | slide | rise | zoom | blur | wipe
+    "transitionMs": 250,      # az egész oldalváltás hossza (ms)
     "startView": "dashboard",
     "targetAvg": 4.5,
     "weighted": True,         # súlyozott átlag (SulySzazalekErteke)
@@ -47,7 +49,8 @@ PALETTES = {"desk", "ocean", "forest", "grape", "rose", "slate", "midnight", "su
 BG_STYLES = {"flat", "glow", "dots", "grid"}
 CARD_STYLES = {"fill", "outline", "glass"}
 DENSITY = {"compact", "normal", "cozy"}
-VIEWS = {"dashboard", "grades", "stats", "timetable", "homework", "absences", "notes", "names", "planner", "pack", "settings"}
+TRANSITIONS = {"none", "fade", "slide", "rise", "zoom", "blur", "wipe"}
+VIEWS = {"dashboard", "grades", "stats", "timetable", "homework", "absences", "notes", "names", "planner", "pack", "settings", "contact"}
 
 
 def _str(v, n):
@@ -109,9 +112,11 @@ def sanitize(d):
     acc = d.get("accent")
     out["accent"] = acc if isinstance(acc, str) and re.fullmatch(r"#[0-9a-fA-F]{6}", acc) else DEFAULTS["accent"]
     out["density"] = d.get("density") if d.get("density") in DENSITY else "normal"
+    out["transition"] = d.get("transition") if d.get("transition") in TRANSITIONS else "fade"
     try:
         out["fontScale"] = min(1.3, max(0.8, float(d.get("fontScale", 1.0))))
         out["radius"] = int(min(28, max(0, float(d.get("radius", 16)))))
+        out["transitionMs"] = int(min(800, max(100, float(d.get("transitionMs", 250)))))
         out["targetAvg"] = min(5.0, max(1.0, float(d.get("targetAvg", 4.5))))
     except (TypeError, ValueError):
         pass

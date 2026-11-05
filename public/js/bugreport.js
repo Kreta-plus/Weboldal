@@ -10,45 +10,94 @@ const origError = console.error;
 const str = (x) => { if (x instanceof Error) return x.stack || x.message; if (typeof x === "string") return x; try { return JSON.stringify(x); } catch { return String(x); } };
 console.error = (...a) => { keep("console: " + a.map(str).join(" ")); origError.apply(console, a); };
 
-export function openBugReport(prefill = "") {
-  if (document.getElementById("bugmodal")) return;
-  const bg = document.createElement("div");
-  bg.className = "modal-bg"; bg.id = "bugmodal";
-  bg.innerHTML = `<form class="card modal bug-modal" role="dialog" aria-modal="true" aria-labelledby="bugt">
-    <h3 id="bugt">🐞 Hibabejelentés</h3>
-    <div class="small muted">Írd le, mi történt, és mit csináltál előtte. Minél pontosabb, annál hamarabb javítjuk.</div>
-    <textarea class="input" id="bugtxt" maxlength="4000" required placeholder="pl. A Jegyek oldalon nem jelenik meg a matek átlag, amióta…">${esc(prefill)}</textarea>
-    <input class="input" id="bugcon" maxlength="120" autocomplete="email" placeholder="E-mail vagy elérhetőség (nem kötelező)" aria-label="Elérhetőség, nem kötelező">
-    <label class="switch"><input type="checkbox" id="bugtech" checked><span>Technikai adatok csatolása</span></label>
-    <div class="small muted">Melyik oldalon vagy, böngésző, képernyőméret és a legutóbbi hibaüzenetek (${errors.length} db). Jegyek, nevek és jelszó nem kerülnek bele.</div>
-    <div class="err" id="bugerr" hidden></div>
-    <div class="row"><button type="button" class="btn grow" id="bugno">Mégsem</button><button class="btn primary grow" id="bugsend">Küldés</button></div>
-  </form>`;
-  document.body.appendChild(bg);
-  const $ = (s) => bg.querySelector(s), txt = $("#bugtxt"), send = $("#bugsend");
-  const close = () => { bg.remove(); document.removeEventListener("keydown", onKey); };
-  const onKey = (e) => { if (e.key === "Escape") close(); };
-  document.addEventListener("keydown", onKey);
-  bg.onclick = (e) => { if (e.target === bg) close(); };
-  $("#bugno").onclick = close;
-  txt.focus();
-  $("form").onsubmit = async (e) => {
+// egy űrlap többféle üzenetre, fent lehet váltani; csak hibánál kell alapból a technikai adat
+const KINDS = {
+  bug: {
+    tab: "🐞 Hiba", title: "🐞 Hibabejelentés", tech: true,
+    desc: "Írd le, mi történt, és mit csináltál előtte. Minél pontosabb, annál hamarabb javítjuk.",
+    ph: "pl. A Jegyek oldalon nem jelenik meg a matek átlag, amióta…",
+    short: "Írd le pár szóban, mi a hiba.", thanks: "Köszönjük, megkaptuk a bejelentést! 🙏",
+  },
+  idea: {
+    tab: "💡 Ötlet", title: "💡 Ötlet", tech: false,
+    desc: "Mi hiányzik, vagy mit csinálnál másképp? Minden ötletet elolvasunk.",
+    ph: "pl. Jó lenne, ha a Táskában a holnapi házik is látszanának…",
+    short: "Írd le pár szóban az ötleted.", thanks: "Köszönjük az ötletet! 💡",
+  },
+  msg: {
+    tab: "💬 Üzenet", title: "💬 Írj nekünk", tech: false,
+    desc: "Kérdésed van, vagy csak írnál nekünk? Az üzenet a fejlesztők Discord-csatornájába érkezik. Ha választ szeretnél, add meg, hol érünk el.",
+    ph: "pl. Sziasztok! Az lenne a kérdésem, hogy…",
+    short: "Írj legalább pár szót.", thanks: "Köszönjük, megkaptuk az üzeneted! ✉️",
+  },
+};
+
+let uid = 0;
+// Az űrlap; kinds: a választható fajták sorrendben. onCancel nélkül nincs Mégsem gomb.
+function feedbackForm(kinds, kind, prefill, { onDone, onCancel }) {
+  const form = document.createElement("form"), id = `fb${++uid}`;
+  form.className = "fb";
+  form.setAttribute("aria-labelledby", id);
+  form.innerHTML = `<div class="seg" role="group" aria-label="Mit küldesz?">${kinds.map((k) => `<button type="button" data-k="${k}">${KINDS[k].tab}</button>`).join("")}</div>
+    <h3 id="${id}" class="fb-t"></h3>
+    <div class="small muted fb-desc"></div>
+    <textarea class="input fb-txt" maxlength="4000" required>${esc(prefill)}</textarea>
+    <input class="input fb-con" maxlength="120" autocomplete="email" placeholder="E-mail vagy elérhetőség (nem kötelező)" aria-label="Elérhetőség, nem kötelező">
+    <label class="switch"><input type="checkbox" class="fb-tech"><span>Technikai adatok csatolása</span></label>
+    <div class="small muted">Melyik oldalon vagy, böngésző, képernyőméret és a legutóbbi hibaüzenetek (<span class="fb-n">${errors.length}</span> db). Jegyek, nevek és jelszó nem kerülnek bele.</div>
+    <div class="err fb-err" hidden></div>
+    <div class="row">${onCancel ? `<button type="button" class="btn grow fb-no">Mégsem</button>` : ""}<button class="btn primary grow fb-send">Küldés</button></div>`;
+  const $ = (s) => form.querySelector(s), txt = $(".fb-txt"), send = $(".fb-send");
+  const err = (m) => { $(".fb-err").hidden = !m; $(".fb-err").textContent = m || ""; };
+  const setKind = (k) => {
+    kind = kinds.includes(k) ? k : kinds[0];
+    const x = KINDS[kind];
+    form.querySelectorAll(".seg button").forEach((b) => { b.classList.toggle("on", b.dataset.k === kind); b.setAttribute("aria-pressed", b.dataset.k === kind); });
+    $(".fb-t").textContent = x.title; $(".fb-desc").textContent = x.desc; txt.placeholder = x.ph; $(".fb-tech").checked = x.tech;
+    err("");
+  };
+  form.querySelectorAll(".seg button").forEach((b) => (b.onclick = () => { setKind(b.dataset.k); txt.focus(); }));
+  form.addEventListener("focusin", () => ($(".fb-n").textContent = errors.length)); // az oldalba ágyazott űrlap sokáig nyitva lehet
+  if (onCancel) $(".fb-no").onclick = onCancel;
+  setKind(kind);
+  form.onsubmit = async (e) => {
     e.preventDefault();
-    const text = txt.value.trim();
-    const err = (m) => { $("#bugerr").hidden = !m; $("#bugerr").textContent = m || ""; };
-    if (text.length < 5) return err("Írd le pár szóban, mi a hiba.");
+    const text = txt.value.trim(), x = KINDS[kind];
+    if (text.length < 5) return err(x.short);
     err(""); send.disabled = true; send.textContent = "Küldés…";
-    const tech = $("#bugtech").checked ? {
+    const tech = $(".fb-tech").checked ? {
       view: location.hash.slice(1) || "", path: location.pathname, screen: `${innerWidth}x${innerHeight}@${devicePixelRatio}`,
       lang: navigator.language, theme: document.documentElement.dataset.theme || "", errors: [...errors],
     } : null;
     try {
-      await post("/api/feedback", { text, contact: $("#bugcon").value.trim(), tech });
-      close();
-      toast("Köszönjük, megkaptuk a bejelentést! 🙏");
+      await post("/api/feedback", { kind, text, contact: $(".fb-con").value.trim(), tech });
+      txt.value = "";
+      onDone(x);
     } catch (ex) {
       err(ex.message);
-      send.disabled = false; send.textContent = "Küldés";
     }
+    send.disabled = false; send.textContent = "Küldés";
   };
+  return form;
+}
+
+export function openBugReport(prefill = "", kind = "bug") {
+  if (document.getElementById("bugmodal")) return;
+  const bg = document.createElement("div");
+  bg.className = "modal-bg"; bg.id = "bugmodal";
+  const close = () => { bg.remove(); document.removeEventListener("keydown", onKey); };
+  const onKey = (e) => { if (e.key === "Escape") close(); };
+  const form = feedbackForm(["bug", "idea", "msg"], kind, prefill, { onDone: (x) => { close(); toast(x.thanks); }, onCancel: close });
+  form.classList.add("card", "modal", "bug-modal");
+  form.setAttribute("role", "dialog"); form.setAttribute("aria-modal", "true");
+  bg.appendChild(form);
+  document.body.appendChild(bg);
+  document.addEventListener("keydown", onKey);
+  bg.onclick = (e) => { if (e.target === bg) close(); };
+  form.querySelector(".fb-txt").focus();
+}
+
+// Oldalba ágyazott űrlap (Kapcsolatok); küldés után kiürül, és újra lehet írni.
+export function mountFeedback(root, kind = "msg") {
+  root.replaceChildren(feedbackForm(["msg", "bug", "idea"], kind, "", { onDone: (x) => toast(x.thanks) }));
 }

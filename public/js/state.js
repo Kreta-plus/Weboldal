@@ -8,6 +8,7 @@ export const S = {
   raw: {},        // nyers válaszok: { jegyek: {data, meta}, ... }
   errors: {},
   weekCache: {},  // órarend hetek
+  site: {},       // az egész oldal beállításai (közlemény, karbantartás, …), a fejlesztői oldalon szerkeszthetők
 };
 
 // Színtémák: [név, sötét előnézet háttér + kártya, világos előnézet háttér + kártya, hozzá illő kiemelő szín].
@@ -143,6 +144,10 @@ export function applyPrefs() {
   root.style.setProperty("--radius", (p.radius ?? 16) + "px");
   document.getElementById("user-css").textContent = p.customCss || "";
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content", getComputedStyle(root).getPropertyValue("--bg").trim()); // böngészősáv színe
+}
+
+export async function loadSite() {
+  try { S.site = await get("/api/site"); } catch {}
 }
 
 export async function loadPrefs() {

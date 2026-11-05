@@ -1,10 +1,17 @@
 import { post, get } from "../api.js";
-import { esc } from "../util.js";
+import { esc, linkify, fmtRange } from "../util.js";
 import { openBugReport } from "../bugreport.js";
+import { S } from "../state.js";
 
 export function renderLogin(root, onDone) {
+  const site = S.site || {}, when = fmtRange(site.maintenanceFrom, site.maintenanceUntil), notes = [];
+  if (site.maintenance) notes.push(["warn", "🔧", `<b>Karbantartás.</b> ${esc(site.maintenanceText)}${when ? ` <b>${esc(when)}</b>.` : ""} Most csak a fejlesztők tudnak belépni.`]);
+  else if (site.maintenanceUpcoming) notes.push(["warn", "🔧", `Karbantartás lesz: <b>${esc(when)}</b>. Ez idő alatt az oldal nem érhető el.`]);
+  if (site.announcement) notes.push([site.announcementLevel || "info", "📢", linkify(site.announcement)]);
+  const notice = notes.map(([lvl, ic, html]) => `<div class="announce ${esc(lvl)}"><span class="announce-ic" aria-hidden="true">${ic}</span><div class="grow">${html}</div></div>`).join("");
   root.innerHTML = `<div class="login-wrap"><div class="card login">
     <div class="hero"><img class="logo" src="/img/logo.svg" alt=""><h1>ZsírKréta</h1><div class="muted">Jegyek, órarend, statisztikák, a saját neveiddel.</div></div>
+    ${notice}
     <ol class="steps">
       <li class="on" data-step="1">
         <b>Lépj be a KRÉTA-ban</b>
@@ -26,8 +33,16 @@ export function renderLogin(root, onDone) {
     </ol>
     <div id="err"></div>
     <div class="small muted">A jelszavad csak a KRÉTA oldalára kerül, mi nem látjuk és nem tároljuk. A belépés után csak egy titkosított megújító token marad a szerveren, így nem kell újra belépned.</div>
-    <a href="#" id="demo" class="small" style="text-align:center">Kipróbálom teszt fiókkal</a>
-    <a href="#" id="bug" class="small muted" style="text-align:center">🐞 Hibát találtál? Jelezd nekünk</a>
+    <details class="em-login"${site.maintenance ? " open" : ""}><summary>Belépés e-mail címmel</summary>
+      <form class="em-form" id="emform">
+        <input class="input" id="em" type="email" autocomplete="username" placeholder="E-mail cím" aria-label="E-mail cím" required>
+        <input class="input" id="empw" type="password" autocomplete="current-password" placeholder="Jelszó" aria-label="Jelszó" required>
+        <button class="btn primary" style="justify-content:center">Belépés</button>
+        <span class="small muted">Ha a Beállításokban e-mail címet csatoltál a fiókodhoz, KRÉTA nélkül is beléphetsz vele. Ez a jelszó nem a KRÉTA-jelszavad, hanem amit ott megadtál.</span>
+      </form>
+    </details>
+    ${site.demoEnabled === false ? "" : `<a href="#" id="demo" class="small" style="text-align:center">Kipróbálom teszt fiókkal</a>`}
+    <a href="#" id="bug" class="small muted" style="text-align:center">📣 Hibát találtál, vagy van egy ötleted? Írd meg nekünk</a>
   </div></div>`;
 
   const $ = (s) => root.querySelector(s);
@@ -97,7 +112,20 @@ export function renderLogin(root, onDone) {
   urlIn.oninput = () => { if (hasCode(urlIn.value)) finish(urlIn.value, false); };
   urlIn.onkeydown = (e) => { if (e.key === "Enter") finish(urlIn.value, true); };
   $("#bug").onclick = (e) => { e.preventDefault(); openBugReport(); };
-  $("#demo").onclick = async (e) => {
+  $("#emform").onsubmit = async (e) => {
+    e.preventDefault(); err("");
+    const b = $("#emform button");
+    b.disabled = true; b.textContent = "Belépés…";
+    try {
+      const r = await post("/api/auth/email/login", { email: $("#em").value, pass: $("#empw").value, remember: true });
+      if (r.admin) location.hash = "dev"; // fejlesztői fiók: a fejlesztői oldal nyílik meg
+      done();
+    } catch (ex) {
+      err(ex.message);
+      b.disabled = false; b.textContent = "Belépés";
+    }
+  };
+  if ($("#demo")) $("#demo").onclick = async (e) => {
     e.preventDefault(); err("");
     try { await post("/api/auth/demo"); done(); } catch (ex) { err(ex.message); }
   };

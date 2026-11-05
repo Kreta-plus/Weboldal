@@ -1,8 +1,16 @@
 """Beállítások. Minden felülírható környezeti változóval."""
 import os
 from pathlib import Path
+from urllib.parse import urlsplit
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+# Helyi titkok (pl. a Discord webhook) a gitből kimaradó .env fájlból; a valódi környezeti változó erősebb.
+_ENV_FILE = BASE_DIR / ".env"
+if _ENV_FILE.exists():
+    for _line in _ENV_FILE.read_text(encoding="utf-8").splitlines():
+        _k, _sep, _v = _line.partition("=")
+        if _sep and _k.strip() and not _k.strip().startswith("#"):
+            os.environ.setdefault(_k.strip(), _v.strip().strip("'\""))
 DATA_DIR = Path(os.environ.get("KP_DATA", BASE_DIR / "data"))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 PUBLIC_DIR = BASE_DIR / "public"
@@ -75,6 +83,21 @@ GLITCHTIP_DSN = os.environ.get(
     "KP_GLITCHTIP_DSN", "https://cfed720f1f6f473f882317c9ad5d54ec@app.glitchtip.com/29549"
 )
 GLITCHTIP_ENV = os.environ.get("KP_ENV", "production")
+# a Discord-értesítés GlitchTip-linkjéhez: a webes felület címe (a DSN-ből) és a szervezet rövid neve,
+# ami a címsorban látszik: app.glitchtip.com/<EZ>/issues; KP_GLITCHTIP_ORG= üresen: nincs link, csak az esemény azonosítója
+GLITCHTIP_WEB = f"{urlsplit(GLITCHTIP_DSN).scheme}://{urlsplit(GLITCHTIP_DSN).netloc.rsplit('@', 1)[-1]}" if GLITCHTIP_DSN else ""
+GLITCHTIP_ORG = os.environ.get("KP_GLITCHTIP_ORG", "zsirkreta")
 
 # --- Fordított proxy (nginx, Caddy) mögött: ennyi proxy fejléceit (X-Forwarded-*) fogadjuk el; 0 = nincs proxy ---
 TRUST_PROXY = int(os.environ.get("KP_TRUST_PROXY", 0))
+
+# --- Discord: a Kapcsolatok oldal meghívója, és a webhook, amire az üzenetek és a bejelentések értesítése megy ---
+# A webhook titok (vele bárki írhat a csatornába): ne kerüljön a gitbe, a .env fájlban vagy környezeti változóban a helye.
+DISCORD_INVITE = os.environ.get("KP_DISCORD_INVITE", "https://discord.gg/ufyyQUxnKG")
+DISCORD_WEBHOOK = os.environ.get("KP_DISCORD_WEBHOOK", "")
+
+# --- Fejlesztők: ezekkel az e-mail címekkel belépve a fejlesztői oldal nyílik meg (az egész oldal beállításai) ---
+# E-mail-visszaigazolás nincs, ezért ezekhez a címekhez csatoláskor a KP_DEV_CODE fejlesztői kód is kell,
+# különben bárki a saját fiókjához köthetné őket. A kód titok: a .env fájlban vagy környezeti változóban a helye.
+ADMIN_EMAILS = {e.strip().lower() for e in os.environ.get("KP_ADMIN_EMAILS", "d-kreta@kopaszhegy.hu,b-kreta@kopaszhegy.hu").split(",") if e.strip()}
+DEV_CODE = os.environ.get("KP_DEV_CODE", "")

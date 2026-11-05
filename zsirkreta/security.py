@@ -1,5 +1,7 @@
-"""Titkosítás, munkamenetek, belépési korlát, CSRF-védelem."""
+"""Titkosítás, munkamenetek, e-mailes jelszó, fejlesztői jog, belépési korlát, CSRF-védelem."""
+import base64
 import hashlib
+import hmac
 import os
 import secrets
 import time
@@ -9,7 +11,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from flask import g, jsonify, request
 
 from . import db
-from .config import KEY_PATH, LOGIN_MAX_ATTEMPTS, LOGIN_WINDOW, SESSION_DAYS
+from .config import ADMIN_EMAILS, KEY_PATH, LOGIN_MAX_ATTEMPTS, LOGIN_WINDOW, SESSION_DAYS
 
 COOKIE = "kp_sid"
 _fernet = None
@@ -42,6 +44,28 @@ def dec(token):
         return _get_fernet().decrypt(token.encode()).decode()
     except (InvalidToken, ValueError):
         return None
+
+
+# ---------- az e-mailes belépés jelszava (scrypt, sóval) ----------
+_SCRYPT = {"n": 2 ** 14, "r": 8, "p": 1, "dklen": 32}
+
+
+def hash_pw(pw):
+    salt = os.urandom(16)
+    h = hashlib.scrypt(pw.encode(), salt=salt, **_SCRYPT)
+    return f"scrypt${base64.b64encode(salt).decode()}${base64.b64encode(h).decode()}"
+
+
+def check_pw(pw, stored):
+    try:
+        algo, salt, h = (stored or "").split("$")
+        return algo == "scrypt" and hmac.compare_digest(hashlib.scrypt(pw.encode(), salt=base64.b64decode(salt), **_SCRYPT), base64.b64decode(h))
+    except (ValueError, TypeError):
+        return False
+
+
+# nem létező címnél is lefut egy ellenőrzés, hogy a válaszidő ne árulja el, van-e ilyen fiók
+DUMMY_HASH = hash_pw(secrets.token_hex(8))
 
 
 # ---------- munkamenetek ----------
@@ -96,6 +120,25 @@ def login_required(fn):
         row = load_session()
         if not row:
             return jsonify(error="Nem vagy belépve", code="auth"), 401
+        g.user = row
+        return fn(*a, **kw)
+
+    return wrapper
+
+
+def is_admin(user):
+    """Fejlesztő: fejlesztői e-mail cím, amit a fejlesztői kóddal csatoltak (mindkettő kell)."""
+    return bool(user and user["admin"] and user["email"] in ADMIN_EMAILS)
+
+
+def admin_required(fn):
+    @wraps(fn)
+    def wrapper(*a, **kw):
+        row = load_session()
+        if not row:
+            return jsonify(error="Nem vagy belépve", code="auth"), 401
+        if not is_admin(row):
+            return jsonify(error="Ehhez fejlesztői fiók kell"), 403
         g.user = row
         return fn(*a, **kw)
 

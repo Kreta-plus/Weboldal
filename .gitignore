@@ -5,3 +5,5 @@ zsirkreta/__pycache__
 data
 tanar/kreta_tanar/__pycache__
 tanar/kreta_tanar/*/__pycache__
+
+.env

@@ -2,7 +2,7 @@
 from flask import Flask, jsonify, request, send_from_directory
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from . import db, monitoring, security
+from . import db, monitoring, security, site
 from .config import PUBLIC_DIR, TRUST_PROXY
 
 
@@ -15,19 +15,31 @@ def create_app():
     db.init()
 
     from .blueprints.auth import bp as auth_bp
+    from .blueprints.contact import bp as contact_bp
     from .blueprints.data import bp as data_bp
     from .blueprints.feedback import bp as feedback_bp
     from .blueprints.prefs import bp as prefs_bp
+    from .blueprints.site import bp as site_bp
 
     app.register_blueprint(auth_bp)
+    app.register_blueprint(contact_bp)
     app.register_blueprint(data_bp)
     app.register_blueprint(feedback_bp)
     app.register_blueprint(prefs_bp)
+    app.register_blueprint(site_bp)
+
+    # karbantartás közben is működik: belépés, a nyilvános oldalbeállítások és az állapotjelző
+    open_paths = ("/api/auth/", "/api/site", "/api/health")
 
     @app.before_request
     def _guard():
         if request.path.startswith("/api/"):
-            return security.csrf_check()
+            bad = security.csrf_check()
+            if bad or request.path.startswith(open_paths):
+                return bad
+            s = site.get()
+            if site.maintenance_status(s) == "active" and not security.is_admin(security.load_session()):
+                return jsonify(error=s["maintenanceText"], code="maintenance"), 503
 
     @app.after_request
     def _headers(resp):

@@ -11,3 +11,5 @@ automations
 phone
 Dockerfile
 docker-compose.yml
+.env
+docs

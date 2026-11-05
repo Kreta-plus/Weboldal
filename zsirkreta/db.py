@@ -1,4 +1,4 @@
-"""SQLite réteg: felhasználók, munkamenetek, gyorsítótár, beállítások, belépési próbák."""
+"""SQLite réteg: felhasználók, munkamenetek, gyorsítótár, beállítások, belépési próbák, oldalbeállítások."""
 import sqlite3
 import threading
 
@@ -18,7 +18,10 @@ CREATE TABLE IF NOT EXISTS users (
     access_exp  REAL DEFAULT 0,
     needs_login INTEGER DEFAULT 0,
     created     REAL NOT NULL,
-    last_login  REAL
+    last_login  REAL,
+    email       TEXT,                      -- e-mailes belépés (kisbetűsen), visszaigazolás nélkül
+    pw_hash     TEXT,                      -- az e-mailes belépés jelszava (scrypt)
+    admin       INTEGER DEFAULT 0          -- fejlesztő: fejlesztői címet a fejlesztői kóddal csatolt
 );
 CREATE TABLE IF NOT EXISTS sessions (
     sid_hash  TEXT PRIMARY KEY,
@@ -46,7 +49,19 @@ CREATE TABLE IF NOT EXISTS attempts (
     ts   REAL NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_attempts ON attempts(akey, ts);
+CREATE TABLE IF NOT EXISTS site (
+    key     TEXT PRIMARY KEY,
+    body    TEXT NOT NULL,
+    updated REAL NOT NULL
+);
 """
+
+# régebbi adatbázisokba utólag felvett oszlopok: (tábla, oszlop, típus)
+MIGRATIONS = [
+    ("users", "email", "TEXT"),
+    ("users", "pw_hash", "TEXT"),
+    ("users", "admin", "INTEGER DEFAULT 0"),
+]
 
 
 def conn():
@@ -61,8 +76,13 @@ def conn():
 
 
 def init():
-    conn().executescript(SCHEMA)
-    conn().commit()
+    c = conn()
+    c.executescript(SCHEMA)
+    for table, col, typ in MIGRATIONS:
+        if col not in {r["name"] for r in c.execute(f"PRAGMA table_info({table})")}:
+            c.execute(f"ALTER TABLE {table} ADD COLUMN {col} {typ}")
+    c.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email)")
+    c.commit()
 
 
 def all_(sql, args=()):

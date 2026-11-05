@@ -15,6 +15,7 @@ export async function api(method, path, body) {
   if (!r.ok) {
     const err = Object.assign(new Error(j.error || `Hiba (${r.status})`), { status: r.status, code: j.code, detail: j.detail });
     if (r.status === 401 && (j.code === "auth" || j.code === "relogin")) window.dispatchEvent(new CustomEvent("kp:auth", { detail: j.code }));
+    if (r.status === 503 && j.code === "maintenance") window.dispatchEvent(new CustomEvent("kp:maintenance", { detail: j.error }));
     throw err;
   }
   return j;
