@@ -3,6 +3,7 @@ import * as St from "./state.js";
 import { S, loadPrefs, loadBundle, applyPrefs, shownName, freshest, LABELS } from "./state.js";
 import { esc, ago, toast } from "./util.js";
 import { renderLogin } from "./views/login.js";
+import { openBugReport } from "./bugreport.js";
 
 const PRIMARY = ["dashboard", "grades", "timetable", "homework"]; // telefonon az alsó sávban; a többi a „Továbbiak” listában
 const VIEWS = {
@@ -54,15 +55,16 @@ function shell() {
       ${GROUPS.map(([id, title, keys]) => `<div class="grp ${closedGroups().has(id) ? "" : "open"}" data-g="${id}">
         <button class="grp-h" aria-expanded="${!closedGroups().has(id)}"><span>${title}</span><span class="chev" aria-hidden="true">›</span></button>
         <div class="grp-b">${keys.map((k) => link(k)).join("")}</div></div>`).join("")}
-      <div class="side-foot">${link("names")}${link("settings")}</div></nav>
+      <div class="side-foot">${link("names")}${link("settings")}<button class="bug-btn" data-bug><span class="ic">🐞</span>Hibabejelentés</button></div></nav>
     <nav class="nav">${Object.keys(VIEWS).map((k) => link(k, PRIMARY.includes(k) ? "" : "sec")).join("")}
       <button class="more-btn" id="more" aria-expanded="false"><span class="ic">⋯</span>Továbbiak</button></nav>
     <div class="me"><div class="avatar">${esc(S.prefs.emoji || "🎓")}</div><div class="grow"><b>${esc(shownName())}</b><div class="small muted" id="fresh"></div></div>
       <button class="btn sm" id="sync" title="Frissítés"><span>⟳</span></button></div></aside>
     <div class="sync-pill" id="syncpill" hidden><span class="spin">⟳</span> Frissítés…</div>
-    <div class="more-sheet" id="sheet" hidden>${Object.keys(VIEWS).filter((k) => !PRIMARY.includes(k)).map((k) => link(k)).join("")}</div>
+    <div class="more-sheet" id="sheet" hidden>${Object.keys(VIEWS).filter((k) => !PRIMARY.includes(k)).map((k) => link(k)).join("")}<button class="bug-btn" data-bug><span class="ic">🐞</span>Hibabejelentés</button></div>
     <main class="main" id="view"></main></div>`;
   document.getElementById("sync").onclick = () => refresh(true);
+  document.querySelectorAll("[data-bug]").forEach((b) => (b.onclick = () => openBugReport()));
   document.querySelectorAll(".grp-h").forEach((b) => (b.onclick = () => {
     const g = b.parentElement, open = !g.classList.contains("open"), closed = closedGroups();
     g.classList.toggle("open", open); b.setAttribute("aria-expanded", open);
@@ -91,8 +93,9 @@ async function show() {
     const m = await loader();
     await m.render(view);
   } catch (e) {
-    view.innerHTML = `<div class="card empty">Hiba a megjelenítésben: ${esc(e.message)}</div>`;
+    view.innerHTML = `<div class="card empty">Hiba a megjelenítésben: ${esc(e.message)}<div style="margin-top:12px"><button class="btn sm" id="viewbug">🐞 Hiba bejelentése</button></div></div>`;
     console.error(e);
+    document.getElementById("viewbug").onclick = () => openBugReport(`A(z) ${VIEWS[current][0]} oldal nem jelenik meg: ${e.message}`);
   }
   setStatus();
 }

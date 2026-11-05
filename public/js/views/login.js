@@ -1,5 +1,6 @@
 import { post, get } from "../api.js";
 import { esc } from "../util.js";
+import { openBugReport } from "../bugreport.js";
 
 export function renderLogin(root, onDone) {
   root.innerHTML = `<div class="login-wrap"><div class="card login">
@@ -26,6 +27,7 @@ export function renderLogin(root, onDone) {
     <div id="err"></div>
     <div class="small muted">A jelszavad csak a KRÉTA oldalára kerül, mi nem látjuk és nem tároljuk. A belépés után csak egy titkosított megújító token marad a szerveren, így nem kell újra belépned.</div>
     <a href="#" id="demo" class="small" style="text-align:center">Kipróbálom teszt fiókkal</a>
+    <a href="#" id="bug" class="small muted" style="text-align:center">🐞 Hibát találtál? Jelezd nekünk</a>
   </div></div>`;
 
   const $ = (s) => root.querySelector(s);
@@ -94,6 +96,7 @@ export function renderLogin(root, onDone) {
   pasteBtn.onclick = () => fromClipboard(true);
   urlIn.oninput = () => { if (hasCode(urlIn.value)) finish(urlIn.value, false); };
   urlIn.onkeydown = (e) => { if (e.key === "Enter") finish(urlIn.value, true); };
+  $("#bug").onclick = (e) => { e.preventDefault(); openBugReport(); };
   $("#demo").onclick = async (e) => {
     e.preventDefault(); err("");
     try { await post("/api/auth/demo"); done(); } catch (ex) { err(ex.message); }

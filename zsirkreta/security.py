@@ -103,11 +103,11 @@ def login_required(fn):
 
 
 # ---------- belépési próbák korlátozása ----------
-def too_many_attempts(*keys):
-    since = time.time() - LOGIN_WINDOW
+def too_many_attempts(*keys, limit=LOGIN_MAX_ATTEMPTS, window=LOGIN_WINDOW):
+    since = time.time() - window
     for k in keys:
         n = db.one("SELECT COUNT(*) AS n FROM attempts WHERE akey=? AND ts>?", (k, since))["n"]
-        if n >= LOGIN_MAX_ATTEMPTS:
+        if n >= limit:
             return True
     return False
 

@@ -3,20 +3,15 @@
   "configurations": [
     {
       "name": "zsirkreta",
-      "runtimeExecutable": "python",
+      "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-c",
-<<<<<<< HEAD
-        "from zsirkreta import create_app; create_app().run(host='127.0.0.1', port=3005, threaded=True)"
-=======
-        "from kreta_plusz import create_app; create_app().run(host='127.0.0.1', port=3005, threaded=True)"
->>>>>>> 13c7885 (Tanari verzió)
+        "KP_ENV=development .venv/bin/python -c \"from zsirkreta import create_app; create_app().run(host='127.0.0.1', port=3005, threaded=True)\""
       ],
       "port": 3005,
       "autoPort": false
     },
     {
-<<<<<<< HEAD
       "name": "landerpage",
       "runtimeExecutable": "python",
       "runtimeArgs": [
@@ -27,7 +22,8 @@
         "landerpage"
       ],
       "port": 3010
-=======
+    },
+    {
       "name": "kreta-tanar-test",
       "runtimeExecutable": "bash",
       "runtimeArgs": [
@@ -36,7 +32,6 @@
       ],
       "port": 3101,
       "autoPort": false
->>>>>>> 13c7885 (Tanari verzió)
     }
   ]
 }
