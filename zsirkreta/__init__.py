@@ -1,14 +1,17 @@
 """Alkalmazás-gyár: blueprintek, biztonsági fejlécek, hibakezelők."""
 from flask import Flask, jsonify, request, send_from_directory
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from . import db, monitoring, security
-from .config import PUBLIC_DIR
+from .config import PUBLIC_DIR, TRUST_PROXY
 
 
 def create_app():
     monitoring.init()  # a Flask app előtt, hogy a Flask-integráció rákapcsolódjon
     app = Flask(__name__, static_folder=str(PUBLIC_DIR), static_url_path="")
     app.config["MAX_CONTENT_LENGTH"] = 512 * 1024
+    if TRUST_PROXY:  # a proxy mögötti valódi IP (belépési korlát), HTTPS (Secure süti) és host (CSRF-ellenőrzés)
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=TRUST_PROXY, x_proto=TRUST_PROXY, x_host=TRUST_PROXY)
     db.init()
 
     from .blueprints.auth import bp as auth_bp

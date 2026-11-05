@@ -1,0 +1,39 @@
+services:
+  zsirkreta:
+    build:
+      context: .
+      target: diak
+    image: zsirkreta
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"   # csak a gépről érhető el; kifelé HTTPS-es proxy (pl. nginx, Caddy) mögé tedd
+    environment:
+      KP_ENV: production
+      KP_TRUST_PROXY: "1"         # proxy mögött: valódi IP és HTTPS a sütikhez; proxy nélkül 0
+      # KP_GLITCHTIP_DSN: ""      # üresen kikapcsolja a hibakövetést
+      # KP_DEMO: "0"              # teszt fiók kikapcsolása
+    volumes:
+      - zsirkreta-data:/data
+
+  # Tanári verzió: alapból nem indul el, csak ha kéred: docker compose up -d tanar
+  # Csak a saját gépről érhető el; ne tedd ki az internetre, a tanári fiók sok diák adatához ad hozzáférést.
+  tanar:
+    build:
+      context: .
+      target: tanar
+    image: zsirkreta-tanar
+    profiles: ["tanar"]
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3100:3100"
+    environment: {}
+      # KT_LIVE_WRITE: "0"                       # semmi nem megy ki a KRÉTA-ba, csak az előnézet
+      # KT_LIVE_OPS: "lesson.log,homework.add"   # csak a felsorolt műveletek mennek ki
+      # KT_DEMO: "0"                             # teszt fiók kikapcsolása
+      # KT_KRETA: "0"                            # valódi KRÉTA belépés kikapcsolása
+    volumes:
+      - zsirkreta-tanar-data:/data
+
+volumes:
+  zsirkreta-data:
+  zsirkreta-tanar-data:

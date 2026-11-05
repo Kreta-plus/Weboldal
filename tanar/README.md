@@ -3,6 +3,8 @@
     pip install -r ../requirements.txt
     python run.py      # http://localhost:3100
 
+Dockerrel (a projekt gyökeréből): `docker compose up -d --build tanar`, aztán http://127.0.0.1:3100. Az adatok a `zsirkreta-tanar-data` kötetben vannak. A `KT_...` beállítások a `docker-compose.yml` `tanar` részében adhatók meg.
+
 Ugyanaz a kinézet, mint a diák verzióé (a `public/css/app.css` másolata + `tanar.css`), de külön szerver, külön adatbázis (`tanar/data/`).
 
 **Teszt fiók:** a belépőoldalon „Kipróbálom teszt fiókkal”. Generál egy iskolát (3 osztály, 5 csoport, ~75 diák, órarend, jegyek, házik, számonkérések, mulasztások, haladási napló, feljegyzések). Minden művelet kipróbálható, de csak szimulált; a KRÉTA-hoz semmi nem megy ki. `KT_DEMO=0` kikapcsolja.

@@ -75,3 +75,6 @@ GLITCHTIP_DSN = os.environ.get(
     "KP_GLITCHTIP_DSN", "https://cfed720f1f6f473f882317c9ad5d54ec@app.glitchtip.com/29549"
 )
 GLITCHTIP_ENV = os.environ.get("KP_ENV", "production")
+
+# --- Fordított proxy (nginx, Caddy) mögött: ennyi proxy fejléceit (X-Forwarded-*) fogadjuk el; 0 = nincs proxy ---
+TRUST_PROXY = int(os.environ.get("KP_TRUST_PROXY", 0))

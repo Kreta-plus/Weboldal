@@ -1,0 +1,13 @@
+.git
+.gitignore
+.venv
+.claude
+data
+tanar/data
+**/__pycache__
+**/*.pyc
+landerpage
+automations
+phone
+Dockerfile
+docker-compose.yml
