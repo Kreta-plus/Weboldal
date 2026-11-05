@@ -35,7 +35,7 @@ export function randomDisclaimer() {
 // ---------- Kezdőlap: vicces szöveg a holnapi órák alapján ----------
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 const SUBJ_QUIPS = [
-  [/testnev/i, ["Holnap testnevelés: a tornazsák már az ajtónál vár, a kifogások még nem.", "Testnevelés lesz. A fáradtságot otthon felejtheted, a zoknit viszont ne.", "Holnap tesi, ma este kezdj el nyújtani, vagy legalább gondolj rá."]],
+  [/testnev/i, ["Holnap testnevelés: a tornazsák már az ajtónál vár, a kifogások nem.", "Testnevelés lesz. A fáradtságot otthon felejtheted, a zoknit viszont ne.", "Holnap tesi, ma este kezdj el nyújtani, vagy legalább gondolj rá."]],
   [/matem/i, ["Holnap matek: x-et megint keresni kell, pedig tegnap is elveszett.", "Matekóra lesz. A számológép nem gondolkodik helyetted, de mellette kevésbé fáj.", "Matek: ahol a betűk is számok, és a számok is betűk lesznek."]],
   [/fizik/i, ["Fizika lesz: Newton is megkapta a magáét az almától, te is túléled.", "Holnap fizika, az erő legyen veled, a képletek pedig a füzetedben."]],
   [/k[ée]mi/i, ["Kémia lesz. Ha bármi füstölni kezd, az vagy a kísérlet, vagy a házid.", "Holnap kémia: remélem, nem te leszel a katalizátor a bajban."]],
