@@ -316,7 +316,7 @@ def preview(uid, prov, op, payload):
 def commit(uid, prov, token):
     row = db.one("SELECT * FROM pending_ops WHERE token=? AND user_id=?", (str(token or ""), uid))
     if row and not prov.enabled(row["op"]):
-        raise OpError("Ez a művelet nincs bekapcsolva éles írásra, ezért nem küldtem el. (KT_LIVE_WRITE=1 és KT_LIVE_OPS a szerveren.)", 403)
+        raise OpError("Ez a művelet ki van kapcsolva a szerveren, ezért nem küldtem el. (KT_LIVE_WRITE=0 vagy KT_LIVE_OPS.)", 403)
     # a token azonnal elhasználódik: ha két kérés jön, csak az egyik törli ténylegesen
     if not row or db.run("DELETE FROM pending_ops WHERE token=?", (row["token"],)).rowcount != 1:
         raise OpError("Ez a művelet már el lett küldve vagy lejárt. Kezdd újra.", 409)

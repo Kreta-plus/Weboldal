@@ -1,4 +1,4 @@
-"""KRÉTA Plusz – tanári verzió, indítófájl.
+"""ZsírKréta – tanári verzió, indítófájl.
 
     pip install -r ../requirements.txt
     python run.py

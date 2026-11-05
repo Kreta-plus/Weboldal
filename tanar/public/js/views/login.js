@@ -7,7 +7,7 @@ export async function renderLogin(root, onDone) {
   let info = { demo: true, kreta: false, link: false };
   try { info = await get("/api/auth/info"); } catch {}
   root.innerHTML = `<div class="login-wrap"><div class="card login">
-    <div class="hero"><div class="logo">T<b>+</b></div><h1>KRÉTA Plusz</h1><div class="muted">Tanári felület: órarend, jegyek, mulasztások, házi feladatok egy helyen.</div></div>
+    <div class="hero"><img class="logo" src="/img/logo.svg" alt=""><h1>ZsírKréta</h1><div class="muted">Tanári felület: órarend, jegyek, mulasztások, házi feladatok egy helyen.</div></div>
     ${info.link ? `<ol class="steps">
       <li class="on" data-step="1">
         <b>Lépj be a KRÉTA-ban</b>
@@ -36,7 +36,7 @@ export async function renderLogin(root, onDone) {
       <div class="small muted" style="margin-top:8px">Ilyenkor a program tölti ki helyetted a KRÉTA belépőoldalát. Ha a KRÉTA captchát vagy kétlépcsős azonosítást kér, ez nem megy, használd a fenti lépéseket.</div></details>` : ""}
     <div id="err"></div>
     ${info.kreta ? `<div class="small muted">Nem hivatalos program. A jelszavad csak a KRÉTA felé megy, nem tároljuk, csak egy titkosított token marad ezen a gépen.
-      Az írás a KRÉTA-ba alapból ki van kapcsolva: amíg be nem kapcsolod, minden művelet csak megmutatja, mi menne ki.</div>` : ""}
+      Minden írás előtt megmutatja, pontosan mi megy ki a KRÉTA-ba, és csak a jóváhagyásod után küldi el.</div>` : ""}
     ${info.demo ? `${info.kreta ? `<div class="login-sep"><span>vagy</span></div>` : ""}
       <button class="btn${info.kreta ? "" : " primary"}" style="justify-content:center" id="demo">Kipróbálom teszt fiókkal</button>
       <div class="small muted">A teszt fiók egy kitalált iskolát generál osztályokkal, diákokkal és jegyekkel. Minden művelet kipróbálható, de csak szimulált: a KRÉTA-ba semmi nem kerül.</div>` : ""}

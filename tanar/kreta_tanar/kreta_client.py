@@ -265,6 +265,19 @@ def _ttl(path):
     return 600
 
 
+def _reason(r):
+    """A KRÉTA hibaüzenete röviden, ha a válaszban van ilyen."""
+    try:
+        j = r.json()
+    except ValueError:
+        return ""
+    if isinstance(j, dict):
+        for k in ("Message", "message", "Uzenet", "error_description", "ExceptionMessage", "title"):
+            if isinstance(j.get(k), str) and j[k].strip():
+                return j[k].strip()[:160]
+    return ""
+
+
 def get(uid, inst, path, params=None, fresh=False):
     """Olvasás gyorsítótárral. fresh=True: írás utáni visszaolvasás, mindig a KRÉTA-tól."""
     ckey = path + ("?" + urlencode(sorted((params or {}).items())) if params else "")
@@ -281,7 +294,8 @@ def get(uid, inst, path, params=None, fresh=False):
         print(f"[KRÉTA] GET {path} {params or ''} -> {r.status_code} {r.text[:300]}")
         if row and not fresh:
             return json.loads(row["body"])
-        raise KretaError(f"A KRÉTA {r.status_code} hibát adott ({path})", 404 if r.status_code == 404 else 502, "kreta", r.text[:200])
+        why = _reason(r)
+        raise KretaError(f"A KRÉTA {r.status_code} hibát adott ({path}){': ' + why if why else ''}", 404 if r.status_code == 404 else 502, "kreta", r.text[:200])
     try:
         data = r.json() if r.text else None
     except ValueError:

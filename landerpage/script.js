@@ -1,6 +1,6 @@
 // Az alkalmazás címe: minden „Kipróbálom” / „Megnyitás” gomb ide visz. Élesítéskor írd át a valódi címre.
-const APP_URL = "/";
-document.querySelectorAll("[data-app]").forEach((a) => (a.href = APP_URL));
+//const APP_URL = "/";
+//document.querySelectorAll("[data-app]").forEach((a) => (a.href = APP_URL));
 
 // ---------- jegyszámoló (ugyanaz a logika, mint az app „hány 5-ös kell” részében, súlyok nélkül) ----------
 const NAMES = { 1: "Egyes", 2: "Kettes", 3: "Hármas", 4: "Négyes", 5: "Ötös" };

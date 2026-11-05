@@ -27,11 +27,11 @@ KRETA_READY = os.environ.get("KT_KRETA", "1") != "0"
 MIN_GAP = float(os.environ.get("KT_MIN_GAP", 0.3))      # két KRÉTA-hívás közti minimum (mp)
 COOLDOWN_429 = int(os.environ.get("KT_COOLDOWN", 300))  # 429/403 után ennyi ideig csak a tárolt adat
 
-# Éles írás a KRÉTA-ba: alapból KI. Két feltétel kell hozzá:
-#   KT_LIVE_WRITE=1 és a művelet neve a KT_LIVE_OPS listában (pl. KT_LIVE_OPS=lesson.log,homework.add)
-# Amíg egy művelet nincs bekapcsolva, a megerősítő ablak csak megmutatja a pontos kérést, de nem küldi el.
-LIVE_WRITE = os.environ.get("KT_LIVE_WRITE") == "1"
-LIVE_OPS = {x.strip() for x in os.environ.get("KT_LIVE_OPS", "").split(",") if x.strip()}
+# Éles írás a KRÉTA-ba: alapból BE, minden támogatott műveletre (a megerősítő ablak mindig megjelenik).
+#   KT_LIVE_WRITE=0 mindent kikapcsol: ilyenkor az ablak csak megmutatja a pontos kérést, de nem küldi el.
+#   KT_LIVE_OPS=lesson.log,homework.add csak a felsorolt műveleteket engedi (üresen hagyva: mindet).
+LIVE_WRITE = os.environ.get("KT_LIVE_WRITE", "1") != "0"
+LIVE_OPS = {x.strip() for x in os.environ.get("KT_LIVE_OPS", "").split(",") if x.strip()} or None  # None: mind
 
 # --- Munkamenet / belépés ---
 SESSION_DAYS = 30            # tanári fióknál rövidebb, mint a diáknál

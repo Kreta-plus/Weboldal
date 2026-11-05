@@ -50,7 +50,7 @@ function shell() {
   current = VIEWS[h] ? h : S.prefs.startView || "dashboard";
   arg = VIEWS[h] ? a : "";
   const link = (k, cls = "") => { const [l, ic] = VIEWS[k]; return `<a data-v="${k}" href="#${k}" class="${cls}"><span class="ic">${ic}</span>${l}</a>`; };
-  app.innerHTML = `<div class="shell"><aside class="side"><div class="brand"><i>T<b>+</b></i><span class="brand-t">KRÉTA Plusz<small class="brand-sub">tanári</small></span></div>
+  app.innerHTML = `<div class="shell"><aside class="side"><div class="brand"><img src="/img/logo.svg" alt=""><span class="brand-t">ZsírKréta<small class="brand-sub">tanári</small></span></div>
     <nav class="side-nav" aria-label="Menü">${link("dashboard")}
       ${GROUPS.map(([id, title, keys]) => `<div class="grp ${closedGroups().has(id) ? "" : "open"}" data-g="${id}">
         <button class="grp-h" aria-expanded="${!closedGroups().has(id)}"><span>${title}</span><span class="chev" aria-hidden="true">›</span></button>

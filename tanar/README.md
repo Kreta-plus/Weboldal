@@ -1,4 +1,4 @@
-# KRÉTA Plusz – tanári verzió
+# ZsírKréta – tanári verzió
 
     pip install -r ../requirements.txt
     python run.py      # http://localhost:3100
@@ -33,11 +33,12 @@ A belépőoldalon kétféleképpen lehet belépni (lásd lent). A program a KRÉ
 - **Belépés jelszóval:** lenyíló rész a belépőoldalon. A program maga tölti ki a KRÉTA belépőoldalát ugyanezzel a klienssel, végül a régi jelszavas tokenkérést próbálja. Captchánál vagy kétlépcsős azonosításnál nem működik.
 - Csak tanári szerepkörű fiók léphet be. A régi `kreta-naplo-mobile` klienst a KRÉTA már nem ismeri.
 - **Olvasás:** gyorsítótárral és szünetekkel, mint a diák verzióban.
-- **Írás alapból KI.** Minden művelet előnézete megmutatja a pontos kérést (módszer, útvonal, JSON). Ténylegesen csak a bekapcsolt művelet megy ki:
+- **Írás alapból BE**, minden támogatott műveletre. Minden művelet előtt megjelenik a megerősítő ablak a pontos kéréssel (módszer, útvonal, JSON), és csak a jóváhagyás után megy ki. Szűkítés a szerver indításakor:
 
-      KT_LIVE_WRITE=1 KT_LIVE_OPS=lesson.log,homework.add python run.py
+      KT_LIVE_WRITE=0 python run.py                            # semmi nem megy ki, csak az előnézet
+      KT_LIVE_OPS=lesson.log,homework.add python run.py        # csak a felsoroltak mennek ki
 
-  Javaslat: egyesével kapcsold be, és ártalmatlan adattal próbáld ki (pl. egy teszt házi, amit utána törölsz).
+  Javaslat: az első alkalommal ártalmatlan adattal próbáld ki (pl. egy teszt házi, amit utána törölsz).
 
 | Művelet | KRÉTA-végpont | Megbízhatóság |
 |---|---|---|
@@ -45,7 +46,7 @@ A belépőoldalon kétféleképpen lehet belépni (lásd lent). A program a KRÉ
 | `homework.add` / `.delete` | `POST HaziFeladat`, `DELETE HaziFeladat/{id}` | V3 kérésforma ismert |
 | `test.add` / `.delete` | `POST/DELETE Orarend/BejelentettSzamonkeres` | V3 kérésforma ismert |
 | `grade.edit` / `.delete` | `PUT/DELETE OsztalyCsoport/Tanulok/Ertekeles/{id}` | V3 kérésforma ismert |
-| `grade.add` | `POST OsztalyCsoport/Ertekeles` | **kísérleti**: a törzs a régi v2 API formája |
+| `grade.add` | `POST OsztalyCsoport/Ertekeles` | **kísérleti**: a kreta.js V3 kérésmodellje (`ClassGroupEvaluationRequestDto`); a régi v2 forma élőben 500-at adott |
 | `note.add` | – | nem támogatott (a V3-ban nincs szabad szöveges feljegyzés) |
 
 Ha valami nem megy, a szerver terminálja `[KRÉTA]` sorokban mutatja a kéréseket és a válaszokat. Minden érték felülírható: `KT_CLIENT_ID`, `KT_UA`, `KT_REDIRECT_URI`, `KT_SCOPE`, `KT_NAPLO_PATH`, `KT_MIN_GAP`. `KT_KRETA=0` kikapcsolja a valódi belépést.

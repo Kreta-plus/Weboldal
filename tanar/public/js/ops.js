@@ -22,7 +22,7 @@ export async function runOp(op, payload) {
       ${pv.lines.length > 4 ? `<div class="small muted">${pv.lines.length} sor</div>` : ""}
       ${pv.simulated ? `<div class="op-note sim">🧪 Teszt fiók: a művelet csak szimulált, a KRÉTA-ba nem kerül semmi.</div>`
         : pv.enabled ? `<div class="op-note live">⚠️ Ez a KRÉTA-ba ír, hivatalos adatot módosít. A kérés nem ellenőrzött, nem hivatalos leírás alapján készült: utána nézd meg a KRÉTA-ban is.</div>`
-        : `<div class="op-note off">🔒 Ez a művelet nincs bekapcsolva éles írásra, ezért nem küldöm el. Lent látod, pontosan mi menne ki. Bekapcsolás a szerveren: <code>KT_LIVE_WRITE=1 KT_LIVE_OPS=${esc(op)}</code></div>`}
+        : `<div class="op-note off">🔒 Ez a művelet a szerveren ki van kapcsolva, ezért nem küldöm el. Lent látod, pontosan mi menne ki. Bekapcsolás: indítsd a szervert <code>KT_LIVE_WRITE=0</code> nélkül, és ha a <code>KT_LIVE_OPS</code> meg van adva, legyen benne: <code>${esc(op)}</code></div>`}
       ${pv.request ? `<details class="op-req" ${pv.enabled ? "" : "open"}><summary>A KRÉTA-nak küldött kérés</summary>${pv.request.note ? `<div class="small" style="margin:6px 0;color:var(--g2)">⚠️ ${esc(pv.request.note)}</div>` : ""}
         <pre>${esc(`${pv.request.method} …/naplo/V3/${pv.request.path}${pv.request.params ? "?" + new URLSearchParams(pv.request.params) : ""}${pv.request.body !== undefined ? "\n\n" + JSON.stringify(pv.request.body, null, 2) : ""}`)}</pre></details>` : ""}
       <div class="row wrap"><button class="btn grow" data-x>${pv.simulated || pv.enabled ? "Mégse" : "Bezárás"}</button>${pv.simulated || pv.enabled ? `<button class="btn ${pv.danger ? "danger-fill" : "primary"} grow" id="op-go">${VERB[op] || "Küldés"}</button>` : ""}</div></div>`;

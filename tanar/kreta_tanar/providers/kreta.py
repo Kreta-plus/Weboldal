@@ -3,7 +3,7 @@
 A végpontok és a mezőnevek nem hivatalos, nyílt forráskódú kliensekből származnak (kreta.js NaploApiV3,
 Coware Napló+), ÉLŐBEN NINCSENEK KIPRÓBÁLVA. Ezért:
   - minden írás előnézetében látszik a pontos kérés (módszer, útvonal, JSON), ami kimenne;
-  - ténylegesen csak az a művelet megy ki, amelyik be van kapcsolva (KT_LIVE_WRITE=1 és KT_LIVE_OPS);
+  - alapból minden támogatott művelet kimegy a megerősítés után; KT_LIVE_WRITE=0 vagy KT_LIVE_OPS szűkíti;
   - nincs automatikus újrapróbálás, és írás után a verify() mindig a KRÉTA-tól olvas vissza.
 
 Megbízhatóság műveletenként (a forrásokban látott kérésforma alapján):
@@ -11,11 +11,12 @@ Megbízhatóság műveletenként (a forrásokban látott kérésforma alapján):
   homework.add / .delete     HaziFeladat – V3 kérésforma ismert
   test.add / .delete         Orarend/BejelentettSzamonkeres – V3 kérésforma ismert
   grade.edit / .delete       OsztalyCsoport/Tanulok/Ertekeles/{id} – V3 kérésforma ismert
-  grade.add                  OsztalyCsoport/Ertekeles – KÍSÉRLETI: a törzs a régi (v2) Napló API formája
+  grade.add                  OsztalyCsoport/Ertekeles – KÍSÉRLETI: a kreta.js V3 kérésmodellje (a v2 forma 500-at adott)
   note.add / .delete         nem támogatott (a V3 API-ban nincs szabad szöveges feljegyzés)
 """
 import datetime as dt
 import re
+import time
 from zoneinfo import ZoneInfo
 
 from .. import config as C
@@ -24,9 +25,21 @@ from .base import GRADE_TYPES, NotSupported, Provider
 
 TZ = ZoneInfo("Europe/Budapest")
 MARKS = {"elégtelen": 1, "elégséges": 2, "közepes": 3, "jó": 4, "jeles": 5}
-MARK_NAMES = {v: k.capitalize() for k, v in MARKS.items()}
 IMPLEMENTED = {"lesson.log", "lesson.topic", "grade.add", "grade.edit", "grade.delete", "homework.add", "homework.delete", "test.add", "test.delete"}
-EXPERIMENTAL = {"grade.add": "Kísérleti: a kérés formája a régi (v2) Napló API-ból származik, a V3-ban nem ellenőrzött."}
+EXPERIMENTAL = {"grade.add": "Kísérleti: a kérés formája a kreta.js V3 kérésmodelljéből (ClassGroupEvaluationRequestDto) származik, élőben még nem ment át. Beküldés után nézd meg a KRÉTA-ban."}
+
+# A KRÉTA szótárazonosítói (Adatszotar) intézményfüggetlenek. A V3 Napló API a MulasztasTipusEnum-ot nem adja ki
+# („Nem engedélyezett vagy nem létező enum!”), ezért a jelenlét-típusok fixek. Forrás: a diák API válaszai
+# („1498,Jelenlet”, „1500,hianyzas”); a késés 1499-e következtetés (a kettő között, a Coware Napló+ sorrendje szerint).
+PRESENCE = {"present": 1498, "late": 1499, "absent": 1500}
+LATE_NOTE = "A késés KRÉTA-kódja (1499) következtetett, nem ellenőrzött: a beküldés után nézd meg a KRÉTA-ban, késésként jelent-e meg."
+# Tartalék, ha az ErtekelesModEnum lekérése sem megy (azonosítók a diák API jegyeiből).
+KNOWN_MODES = [{"Id": 1507, "Nev": "irasbeli_temazaro_dolgozat", "Leiras": "Írásbeli témazáró dolgozat"},
+               {"Id": 1508, "Nev": "irasbeli_ropdolgozat", "Leiras": "Írásbeli röpdolgozat"},
+               {"Id": 1509, "Nev": "szobeli_felelet", "Leiras": "Szóbeli felelet"},
+               {"Id": 1511, "Nev": "gyakorlati_feladat", "Leiras": "Gyakorlati feladat"},
+               {"Id": 1516, "Nev": "orai_munka", "Leiras": "Órai munka"}]
+_ENUM_FAIL = {}  # enumnév -> eddig nem kérdezzük újra
 
 
 def _local(s):
@@ -89,21 +102,39 @@ class KretaProvider(Provider):
         return self._memo[key]
 
     def _enum(self, name):
+        # A paraméter neve a Coware Napló+ szerint „engedelyezettEnumName” (a KRÉTA hibaüzenete is erre utal:
+        # „Nem engedélyezett vagy nem létező enum”); a kreta.js „enumTipus”-a tartaléknak marad.
         def load():
-            try:
-                return self._get("Enum/NaploEnum", {"enumTipus": name}) or []
-            except K.KretaError as e:
-                print(f"[KRÉTA] {name}: {e.msg}")
+            if _ENUM_FAIL.get(name, 0) > time.time():  # a KRÉTA nemrég elutasította: ne kérdezzük minden oldalbetöltésnél
                 return []
+            for params in ({"hash": "", "engedelyezettEnumName": name}, {"enumTipus": name}):
+                try:
+                    data = self._get("Enum/NaploEnum", params)
+                except K.KretaError as e:
+                    print(f"[KRÉTA] {name} {list(params)}: {e.msg}")
+                    continue
+                if isinstance(data, dict):  # ha a válasz enumnév szerint csoportosít
+                    data = data.get(name) or next((v for v in data.values() if isinstance(v, list)), [])
+                return [x for x in data or [] if isinstance(x, dict) and "Id" in x]
+            _ENUM_FAIL[name] = time.time() + 6 * 3600
+            return []
         return self._m("enum:" + name, load)
 
     def _window(self):
-        """Egy órarend-lekérés (−30…+56 nap) a házikhoz, számonkérésekhez és a tantárgynevekhez."""
+        """Az órarend −14…+35 napra (8 heti lekérés, utána gyorsítótárból) a házikhoz, számonkérésekhez és a tantárgynevekhez."""
         t = dt.date.today()
-        return self._m("window", lambda: self._raw_lessons((t - dt.timedelta(days=30)).isoformat(), (t + dt.timedelta(days=56)).isoformat()))
+        return self._m("window", lambda: self._raw_lessons((t - dt.timedelta(days=14)).isoformat(), (t + dt.timedelta(days=35)).isoformat()))
 
     def _raw_lessons(self, a, b):
-        return [e for e in (self._get("Orarend", {"datumTol": a, "datumIg": b}) or []) if e.get("OsztalyCsoportId") and e.get("TantargyId")]
+        """Az órarendet hetenként kérjük (hétfő–vasárnap), ahogy a mobilkliens: hosszabb időszakra a KRÉTA 400-at ad.
+        Az egész heteket a gyorsítótár is újrahasznosítja, a napokra itt szűrünk."""
+        d, end, out = dt.date.fromisoformat(a), dt.date.fromisoformat(b), []
+        d -= dt.timedelta(days=d.weekday())
+        while d <= end:
+            week = self._get("Orarend", {"datumTol": d.isoformat(), "datumIg": (d + dt.timedelta(days=6)).isoformat()}) or []
+            out += [e for e in week if e.get("OsztalyCsoportId") and e.get("TantargyId") and a <= (_day(e.get("Kezdete")) or "") <= b]
+            d += dt.timedelta(days=7)
+        return out
 
     # --- olvasás ---
     def teacher(self):
@@ -220,9 +251,7 @@ class KretaProvider(Provider):
                        for l in (self._lesson_out(e) for e in self._window()) if l["testId"]), key=lambda t: (t["date"], t["nr"]))
 
     def _presence_types(self):
-        en = self._enum("MulasztasTipusEnum")
-        find = lambda rx: next((x["Id"] for x in en if re.search(rx, f"{x.get('Nev', '')} {x.get('Leiras', '')}", re.I)), None)  # noqa: E731
-        return {"present": find(r"jelen"), "absent": find(r"hi[aá]ny"), "late": find(r"k[eé]s[eé]s")}
+        return PRESENCE
 
     def absences(self, group_id=None, date=None, nr=None, student_id=None):
         if not (group_id and date and nr is not None):
@@ -241,9 +270,11 @@ class KretaProvider(Provider):
     def notes(self, student_id=None):
         return []
 
+    def _modes(self):
+        return self._enum("ErtekelesModEnum") or KNOWN_MODES
+
     def grade_types(self):
-        modes = self._enum("ErtekelesModEnum")
-        return {(m.get("Leiras") or m.get("Nev")): None for m in modes} or dict.fromkeys(GRADE_TYPES)
+        return {(m.get("Leiras") or m.get("Nev")): None for m in self._modes()} or dict.fromkeys(GRADE_TYPES)
 
     def test_kinds(self):
         return list(self.grade_types())
@@ -252,9 +283,9 @@ class KretaProvider(Provider):
         return []
 
     def _mode(self, name):
-        m = next((m for m in self._enum("ErtekelesModEnum") if name in (m.get("Leiras"), m.get("Nev"))), None)
+        m = next((m for m in self._modes() if name in (m.get("Leiras"), m.get("Nev"))), None)
         if not m:
-            raise NotSupported(f"A(z) „{name}” értékelési módot nem találom a KRÉTA-ban (az enum lekérése nem sikerült?)")
+            raise NotSupported(f"A(z) „{name}” értékelési módot nem találom a KRÉTA-ban")
         return m
 
     # --- írás ---
@@ -262,20 +293,20 @@ class KretaProvider(Provider):
         return set(IMPLEMENTED)
 
     def enabled(self, op):
-        return C.LIVE_WRITE and op in C.LIVE_OPS and op in IMPLEMENTED
+        return C.LIVE_WRITE and (C.LIVE_OPS is None or op in C.LIVE_OPS) and op in IMPLEMENTED
 
     def describe(self, op, d):
         req = self._build(op, d)
         if op in EXPERIMENTAL:
             req["note"] = EXPERIMENTAL[op]
+        elif op in ("lesson.log", "lesson.topic") and any(x["Mulasztas"]["Tipus"] == PRESENCE["late"] for x in req["body"]["TanuloLista"]):
+            req["note"] = LATE_NOTE
         return req
 
     def _build(self, op, d):
         if op in ("lesson.log", "lesson.topic"):
             l = self._find_lesson(d["groupId"], d["date"], d["nr"])
             types = self._presence_types()
-            if None in types.values():
-                raise NotSupported("Nem sikerült lekérni a mulasztástípusokat a KRÉTA-ból (MulasztasTipusEnum)")
             entries = d["entries"] if op == "lesson.log" else self.absences(d["groupId"], d["date"], d["nr"])
             marks = {e["studentId"]: e for e in entries}
             lst = []
@@ -285,18 +316,16 @@ class KretaProvider(Provider):
                             "FeljegyzesTipusLista": []})
             return {"method": "POST", "path": "Orarend/OraNaplozas", "body": {"OrarendElemUid": l["uid"], "Tema": d["topic"], "IsElmaradt": False, "TanuloLista": lst}}
         if op == "grade.add":
+            # a kreta.js V3 ClassGroupEvaluationRequestDto mezői: a mód és az osztályzat puszta azonosító
             g, mode = self._grp(d["groupId"]), self._mode(d["type"])
-            tip = next(({"Id": x["Id"], "Nev": x.get("Nev")} for x in self._enum("ErtekelesTipusEnum") if re.search(r"[ée]vk[öo]zi", f"{x.get('Nev', '')} {x.get('Leiras', '')}", re.I)), None)
             return {"method": "POST", "path": "OsztalyCsoport/Ertekeles", "body": [{
-                "DatumUtc": _utc_midnight(d["date"]), "Mod": {"Id": mode["Id"], "Nev": mode.get("Nev")}, "Tipus": tip, "Tema": d["topic"] or None,
-                "OsztalycsoportId": g["ocs"], "TantargyId": g["tid"],
-                "TanuloLista": [{"MobilId": i + 1, "TanuloId": int(e["studentId"]),
-                                 "Ertekeles": {"OsztalyzatTipus": {"Id": 1500 + e["value"], "Nev": MARK_NAMES[e["value"]]}, "Szazalek": None, "Szoveg": None}}
-                                for i, e in enumerate(d["entries"])]}]}
+                "OsztalyCsoportId": g["ocs"], "TantargyId": g["tid"], "Datum": _utc_midnight(d["date"]), "Mod": mode["Id"], "Tema": d["topic"] or None,
+                "TanuloLista": [{"TanuloId": int(e["studentId"]), "Ertekeles": {"OsztalyzatTipus": 1500 + e["value"], "Szazalek": None, "Szoveg": None}}
+                                for e in d["entries"]]}]}
         if op == "grade.edit":
             gr = self._grade(d)
             return {"method": "PUT", "path": f"OsztalyCsoport/Tanulok/Ertekeles/{gr['id']}", "body": {
-                "ErtekelesDatum": _utc_midnight(gr["date"]), "ErtekelesOsztalyzatId": 1500 + d["value"], "ErtekelesModId": self._mode(d["type"])["Id"], "ErtekelesTema": d["topic"]}}
+                "ErtekelesDatum": _utc_midnight(gr["date"]), "ErtekelesOsztalyzatId": 1500 + d["value"], "ErtekelesModId": gr["modeId"] if gr.get("modeId") and d["type"] == gr["type"] else self._mode(d["type"])["Id"], "ErtekelesTema": d["topic"]}}
         if op == "grade.delete":
             return {"method": "DELETE", "path": f"OsztalyCsoport/Tanulok/Ertekeles/{self._grade(d)['id']}"}
         if op == "homework.add":
@@ -321,7 +350,7 @@ class KretaProvider(Provider):
 
     def apply(self, op, d, request=None):
         if not self.enabled(op):
-            raise NotSupported("Ez a művelet nincs bekapcsolva éles írásra (KT_LIVE_WRITE=1 és KT_LIVE_OPS).")
+            raise NotSupported("Ez a művelet ki van kapcsolva a szerveren (KT_LIVE_WRITE=0 vagy KT_LIVE_OPS).")
         if not request:
             raise NotSupported("Hiányzik a jóváhagyott kérés")
         res = K.send(self.uid, self.inst, request["method"], request["path"], request.get("params"), request.get("body"))
