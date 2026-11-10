@@ -8,6 +8,7 @@ from flask import Blueprint, g, jsonify, make_response, request
 
 from .. import config as C
 from .. import db, kreta_client, security
+from . import feedback
 
 bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
@@ -32,7 +33,7 @@ def _client_ip():
 
 @bp.get("/info")
 def info():
-    return jsonify(demo=C.DEMO_ENABLED, kreta=C.KRETA_READY, link=C.KRETA_READY and bool(C.TEACHER_REDIRECT_URI))
+    return jsonify(demo=C.DEMO_ENABLED, kreta=C.KRETA_READY, link=C.KRETA_READY and bool(C.TEACHER_REDIRECT_URI), feedback=feedback.kinds())
 
 
 @bp.post("/login")

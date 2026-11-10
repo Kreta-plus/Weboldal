@@ -1,11 +1,13 @@
 import { post, get } from "../api.js";
 import { esc } from "../util.js";
+import { openBugReport, setFeedbackKinds } from "../bugreport.js";
 
 const normInst = (v) => v.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\.e-kreta\.hu.*$/, "");
 
 export async function renderLogin(root, onDone) {
   let info = { demo: true, kreta: false, link: false };
   try { info = await get("/api/auth/info"); } catch {}
+  setFeedbackKinds(info.feedback);
   root.innerHTML = `<div class="login-wrap"><div class="card login">
     <div class="hero"><img class="logo" src="/img/logo.svg" alt=""><h1>ZsírKréta</h1><div class="muted">Tanári felület: órarend, jegyek, mulasztások, házi feladatok egy helyen.</div></div>
     ${info.link ? `<ol class="steps">
@@ -40,6 +42,7 @@ export async function renderLogin(root, onDone) {
     ${info.demo ? `${info.kreta ? `<div class="login-sep"><span>vagy</span></div>` : ""}
       <button class="btn${info.kreta ? "" : " primary"}" style="justify-content:center" id="demo">Kipróbálom teszt fiókkal</button>
       <div class="small muted">A teszt fiók egy kitalált iskolát generál osztályokkal, diákokkal és jegyekkel. Minden művelet kipróbálható, de csak szimulált: a KRÉTA-ba semmi nem kerül.</div>` : ""}
+    ${info.feedback?.length ? `<a href="#" id="bug" class="small muted" style="text-align:center">📣 Hibát találtál, vagy van egy ötleted? Írd meg nekünk</a>` : ""}
   </div></div>`;
 
   const $ = (s) => root.querySelector(s);
@@ -51,6 +54,7 @@ export async function renderLogin(root, onDone) {
     onDone();
   };
 
+  $("#bug")?.addEventListener("click", (e) => { e.preventDefault(); openBugReport(); });
   const demo = $("#demo");
   if (demo) demo.onclick = async () => {
     err(""); demo.disabled = true; demo.textContent = "Iskola generálása…";

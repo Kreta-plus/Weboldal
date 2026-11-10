@@ -6,6 +6,7 @@ from flask import Blueprint, g, jsonify, request
 
 from .. import config as C
 from .. import ops, providers, security
+from .. import kreta_client
 from ..kreta_client import KretaError
 from ..providers import NotSupported
 
@@ -36,6 +37,18 @@ def _date_arg(name, default):
         return dt.date.fromisoformat(request.args.get(name, "")).isoformat()
     except ValueError:
         return default.isoformat()
+
+
+@bp.post("/refresh")
+@with_provider
+def refresh(p):
+    """Kézi frissítés. A teszt fiók adatai helyben vannak, ott nincs mit újra lekérni."""
+    if p.demo:
+        return jsonify(ok=True, wait=0)
+    wait = kreta_client.refresh(g.user["id"])
+    if wait:
+        return jsonify(error=f"Túl gyakran frissítenél, {wait} mp múlva lehet újra", code="throttle", wait=wait), 429
+    return jsonify(ok=True, wait=kreta_client.REFRESH_GAP)
 
 
 @bp.get("/overview")

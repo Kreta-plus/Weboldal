@@ -21,6 +21,7 @@ export async function runOp(op, payload) {
       <div class="op-lines">${pv.lines.map((l) => `<div class="op-l"><span>${esc(l.k)}</span>${l.grade ? `<span class="row" style="gap:8px">${l.v !== String(l.grade) ? `<span class="small muted">${esc(l.v)}</span>` : ""}<span class="gr ${gcls(l.grade)}">${l.grade}</span></span>` : `<b>${esc(l.v)}</b>`}</div>`).join("")}</div>
       ${pv.lines.length > 4 ? `<div class="small muted">${pv.lines.length} sor</div>` : ""}
       ${pv.simulated ? `<div class="op-note sim">🧪 Teszt fiók: a művelet csak szimulált, a KRÉTA-ba nem kerül semmi.</div>`
+        : pv.enabled && pv.request?.proven ? `<div class="op-note live">✅ Ez a KRÉTA-ba ír. Beküldés után a program magától visszaolvassa a KRÉTA-ból (téma, hiányzók, késések), és csak akkor szól, ha valami nem egyezik.</div>`
         : pv.enabled ? `<div class="op-note live">⚠️ Ez a KRÉTA-ba ír, hivatalos adatot módosít. A kérés nem ellenőrzött, nem hivatalos leírás alapján készült: utána nézd meg a KRÉTA-ban is.</div>`
         : `<div class="op-note off">🔒 Ez a művelet a szerveren ki van kapcsolva, ezért nem küldöm el. Lent látod, pontosan mi menne ki. Bekapcsolás: indítsd a szervert <code>KT_LIVE_WRITE=0</code> nélkül, és ha a <code>KT_LIVE_OPS</code> meg van adva, legyen benne: <code>${esc(op)}</code></div>`}
       ${pv.request ? `<details class="op-req" ${pv.enabled ? "" : "open"}><summary>A KRÉTA-nak küldött kérés</summary>${pv.request.note ? `<div class="small" style="margin:6px 0;color:var(--g2)">⚠️ ${esc(pv.request.note)}</div>` : ""}

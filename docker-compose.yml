@@ -29,7 +29,11 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:3100:3100"
-    environment: {}
+    environment:
+      KT_ENV: production
+      KT_DISCORD_WEBHOOK: ${KT_DISCORD_WEBHOOK:-}  # titok, a .env fájlból; nélküle nincs Discord-értesítés és „Üzenet” fajta
+      # KT_GLITCHTIP_DSN: ""                     # üresen kikapcsolja a hibakövetést és a hiba/ötlet bejelentést
+      # KT_FEEDBACK: "0"                         # a hiba/ötlet gomb kikapcsolása
       # KT_LIVE_WRITE: "0"                       # semmi nem megy ki a KRÉTA-ba, csak az előnézet
       # KT_LIVE_OPS: "lesson.log,homework.add"   # csak a felsorolt műveletek mennek ki
       # KT_DEMO: "0"                             # teszt fiók kikapcsolása

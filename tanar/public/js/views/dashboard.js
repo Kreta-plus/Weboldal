@@ -16,7 +16,7 @@ export async function render(root) {
   const t = todayIso();
   let dayLs = week.filter((l) => l.date === t), dayLabel = "Mai órák";
   if (!dayLs.length && next.length) { dayLs = next.filter((l) => l.date === next[0].date); dayLabel = `Következő tanítási nap: ${DAYS[(day(next[0].date).getDay() + 6) % 7]}, ${fmtDate(day(next[0].date))}`; }
-  const todo = week.filter((l) => (!l.recorded || !l.topic) && started(l));
+  const todo = week.filter((l) => !l.cancelled && (!l.recorded || !l.topic) && started(l));
   const soon = tests.filter((x) => x.date >= t && x.date <= addIso(14));
   const risk = groups.flatMap((g) => g.students.filter((s) => s.avg != null && s.avg < 2).map((s) => ({ ...s, group: g.group })))
     .sort((a, b) => a.avg - b.avg);
@@ -57,7 +57,7 @@ export const statusChip = (s) => s === "ok" ? `<span class="chip ok">kész</span
 
 export function lessonRow(l) {
   const g = group(l.groupId), now = new Date(), st = new Date(`${l.date}T${l.start}`), en = new Date(`${l.date}T${l.end}`);
-  const state = l.recorded ? `<span class="chip ok">naplózva${l.absent ? ` · ${l.absent} hiányzó` : ""}</span>` : st <= now ? `<span class="chip warn">beírandó</span>` : "";
+  const state = l.cancelled ? `<span class="chip">elmaradt</span>` : l.recorded ? `<span class="chip ok">naplózva${l.absent ? ` · ${l.absent} hiányzó` : ""}</span>` : st <= now ? `<span class="chip warn">beírandó</span>` : "";
   return `<div class="item les-row ${st <= now && now < en ? "now" : ""}"><span class="les-nr">${l.nr}.</span>
     <div class="grow"><b>${esc(g?.name || "?")}</b><div class="small muted">${l.start}–${l.end} · ${esc(l.room)} terem${klass(l.classId)?.head ? " · osztályfőnöki" : ""}</div>
       ${l.topic ? `<div class="small">📒 ${esc(l.topic)}</div>` : ""}

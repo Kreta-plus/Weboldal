@@ -1,6 +1,7 @@
 """Beállítások (tanári verzió). Minden felülírható környezeti változóval."""
 import os
 from pathlib import Path
+from urllib.parse import urlsplit
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = Path(os.environ.get("KT_DATA", BASE_DIR / "data"))
@@ -32,6 +33,16 @@ COOLDOWN_429 = int(os.environ.get("KT_COOLDOWN", 300))  # 429/403 után ennyi id
 #   KT_LIVE_OPS=lesson.log,homework.add csak a felsorolt műveleteket engedi (üresen hagyva: mindet).
 LIVE_WRITE = os.environ.get("KT_LIVE_WRITE", "1") != "0"
 LIVE_OPS = {x.strip() for x in os.environ.get("KT_LIVE_OPS", "").split(",") if x.strip()} or None  # None: mind
+
+# --- Visszajelzés és hibakövetés (GlitchTip, Sentry-kompatibilis), mint a diák verzióban ---
+# KT_GLITCHTIP_DSN= üresen kikapcsolja; KT_ENV=development a fejlesztés közbeni próbákhoz
+GLITCHTIP_DSN = os.environ.get("KT_GLITCHTIP_DSN", "https://95665fea7e0844329cbc8d9cc9563f8f@app.glitchtip.com/29663")
+GLITCHTIP_ENV = os.environ.get("KT_ENV", "production")
+GLITCHTIP_WEB = f"{urlsplit(GLITCHTIP_DSN).scheme}://{urlsplit(GLITCHTIP_DSN).netloc.rsplit('@', 1)[-1]}" if GLITCHTIP_DSN else ""
+GLITCHTIP_ORG = os.environ.get("KT_GLITCHTIP_ORG", "zsirkreta")  # a Discord-értesítés GlitchTip-linkjéhez
+# Discord-értesítés a bejelentésekről (nem kötelező); az „Üzenet” fajta csak ezzel érhető el
+DISCORD_WEBHOOK = os.environ.get("KT_DISCORD_WEBHOOK", "")
+FEEDBACK_ENABLED = os.environ.get("KT_FEEDBACK", "1") != "0"
 
 # --- Munkamenet / belépés ---
 SESSION_DAYS = 30            # tanári fióknál rövidebb, mint a diáknál

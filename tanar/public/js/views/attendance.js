@@ -17,7 +17,7 @@ export async function render(root, arg) {
         const started = new Date(`${l.date}T${l.start}`) <= now;
         return `<a class="item linkrow" href="#lesson/${encodeURIComponent(l.id)}"><span class="les-nr">${l.nr}.</span><span class="dot" style="background:${subjColor(l.subject)}"></span>
           <div class="grow"><b>${esc(group(l.groupId)?.name || "?")}</b><div class="small muted">${l.start}–${l.end} · ${esc(l.room)}${l.topic ? ` · 📒 ${esc(l.topic)}` : ""}</div></div>
-          ${l.recorded ? `<span class="chip ok">rögzítve${l.absent ? ` · ${l.absent} hiányzó` : ""}${l.late ? ` · ${l.late} késő` : ""}</span>` : started ? `<span class="chip warn">beírandó</span>` : `<span class="chip">később</span>`}</a>`;
+          ${l.cancelled ? `<span class="chip">elmaradt</span>` : l.recorded ? `<span class="chip ok">rögzítve${l.absent ? ` · ${l.absent} hiányzó` : ""}${l.late ? ` · ${l.late} késő` : ""}</span>` : started ? `<span class="chip warn">beírandó</span>` : `<span class="chip">később</span>`}</a>`;
       }).join("") || `<div class="empty">Ezen a napon nincs órád.</div>`}</div></div>`;
   root.querySelector("#pd").onchange = (e) => { pickDate = e.target.value || todayIso(); render(root); };
 }

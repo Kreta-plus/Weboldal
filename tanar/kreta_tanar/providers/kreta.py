@@ -30,15 +30,20 @@ EXPERIMENTAL = {"grade.add": "Kísérleti: a kérés formája a kreta.js V3 kér
 
 # A KRÉTA szótárazonosítói (Adatszotar) intézményfüggetlenek. A V3 Napló API a MulasztasTipusEnum-ot nem adja ki
 # („Nem engedélyezett vagy nem létező enum!”), ezért a jelenlét-típusok fixek. Forrás: a diák API válaszai
-# („1498,Jelenlet”, „1500,hianyzas”); a késés 1499-e következtetés (a kettő között, a Coware Napló+ sorrendje szerint).
+# („1498,Jelenlet”, „1500,hianyzas”); a késés 1499-e következtetés (a kettő között), de minden naplózás után a Jelenlet visszaolvasása ellenőrzi.
 PRESENCE = {"present": 1498, "late": 1499, "absent": 1500}
-LATE_NOTE = "A késés KRÉTA-kódja (1499) következtetett, nem ellenőrzött: a beküldés után nézd meg a KRÉTA-ban, késésként jelent-e meg."
+# Élőben kipróbált műveletek: beküldés után a program teljesen visszaellenőrzi őket (téma, állapot, minden diák jelenléte),
+# ezért a felület nem kéri, hogy a tanár a KRÉTA-ban is megnézze.
+PROVEN = {"lesson.log", "lesson.topic"}
 # Tartalék, ha az ErtekelesModEnum lekérése sem megy (azonosítók a diák API jegyeiből).
 KNOWN_MODES = [{"Id": 1507, "Nev": "irasbeli_temazaro_dolgozat", "Leiras": "Írásbeli témazáró dolgozat"},
                {"Id": 1508, "Nev": "irasbeli_ropdolgozat", "Leiras": "Írásbeli röpdolgozat"},
                {"Id": 1509, "Nev": "szobeli_felelet", "Leiras": "Szóbeli felelet"},
                {"Id": 1511, "Nev": "gyakorlati_feladat", "Leiras": "Gyakorlati feladat"},
                {"Id": 1516, "Nev": "orai_munka", "Leiras": "Órai munka"}]
+# Az óra állapota (Allapot) a KRÉTA szótárából: 1 naplózott, 2 nem naplózott, 3 elmaradt, 4 tanév rendje esemény
+# (a diák API „1,Naplozott” … „4,TanevRendjeEsemeny” értékei). A „Naplozart” NEM ezt jelenti, hanem hogy a napló le van zárva.
+LOGGED, CANCELLED = 1, (3, 4)
 _ENUM_FAIL = {}  # enumnév -> eddig nem kérdezzük újra
 
 
@@ -218,7 +223,7 @@ class KretaProvider(Provider):
         test = e.get("BejelenetettSzamonkeresId") or e.get("BejelentettSzamonkeresId")  # a KRÉTA mezőneve így, elírva
         return {"id": f"{gid}|{ds}|{nr}", "uid": e.get("Uid"), "date": ds, "nr": nr, "start": st.strftime("%H:%M") if st else "", "end": en.strftime("%H:%M") if en else "",
                 "groupId": gid, "classId": str(e["OsztalyCsoportId"]), "subject": e.get("Nev") or "", "room": e.get("Terem") or "",
-                "recorded": bool(e.get("Naplozart")), "topic": e.get("Tema") or "", "absent": None, "late": None,
+                "recorded": e.get("Allapot") == LOGGED, "cancelled": e.get("Allapot") in CANCELLED, "locked": bool(e.get("Naplozart")), "topic": e.get("Tema") or "", "absent": None, "late": None,
                 "testId": str(test) if test else None, "testKind": e.get("BejelentettSzamonkeresMod") or "", "testTopic": e.get("BejelentettSzamonkeresTema") or "",
                 "hwCount": 1 if e.get("HaziFeladatId") else 0, "hwId": e.get("HaziFeladatId")}
 
@@ -299,8 +304,7 @@ class KretaProvider(Provider):
         req = self._build(op, d)
         if op in EXPERIMENTAL:
             req["note"] = EXPERIMENTAL[op]
-        elif op in ("lesson.log", "lesson.topic") and any(x["Mulasztas"]["Tipus"] == PRESENCE["late"] for x in req["body"]["TanuloLista"]):
-            req["note"] = LATE_NOTE
+        req["proven"] = op in PROVEN
         return req
 
     def _build(self, op, d):
@@ -357,12 +361,29 @@ class KretaProvider(Provider):
         K.invalidate(self.uid, "Orarend", "OsztalyCsoport/Ertekeles", "OsztalyCsoport/Tanulok/Ertekeles", "HaziFeladat")
         return {"response": res, "request": request}
 
+    def _verify_lesson(self, d, body):
+        """Az óra visszaolvasása a KRÉTA-ból: naplózott-e, egyezik-e a téma, és minden diák jelenléte (típus, késés perce)."""
+        uid = body.get("OrarendElemUid")
+        # az írás után a gyorsítótár üres, így ez már a KRÉTA friss órarendje
+        e = next((x for x in self._raw_lessons(d["date"], d["date"]) if x.get("Uid") == uid), None)
+        if e is None:
+            e = self._get("Orarend/OrarendElem", {"orarendElemUid": uid}, fresh=True) or {}
+        if e.get("Allapot") != LOGGED or (e.get("Tema") or "").strip() != (d["topic"] or "").strip():
+            print(f"[KRÉTA] naplózás visszaolvasás: Allapot={e.get('Allapot')} Tema={e.get('Tema')!r}")
+            return False
+        got = {p.get("TanuloId"): p for p in self._get("Orarend/Jelenlet", {"orarendElemUid": uid}, fresh=True) or []}
+        for t in body.get("TanuloLista") or []:
+            p, want = got.get(t["Id"]), t["Mulasztas"]
+            if not p or p.get("MulasztasTipus") != want["Tipus"] or (want["Tipus"] == PRESENCE["late"] and (p.get("Keses") or 0) != want["Keses"]):
+                print(f"[KRÉTA] naplózás visszaolvasás: diák {t['Id']} küldve {want}, KRÉTA-ban {p and {k: p.get(k) for k in ('MulasztasTipus', 'Keses')}}")
+                return False
+        return True
+
     def verify(self, op, d, result):
         req, res = result.get("request") or {}, result.get("response")
         body = req.get("body") or {}
         if op in ("lesson.log", "lesson.topic"):
-            e = self._get("Orarend/OrarendElem", {"orarendElemUid": body.get("OrarendElemUid")}, fresh=True) or {}
-            return bool(e.get("Naplozart")) and (e.get("Tema") or "") == d["topic"]
+            return self._verify_lesson(d, body)
         if op == "homework.add":
             return isinstance(res, int) and K.exists(self.uid, self.inst, f"HaziFeladat/{res}")
         if op == "test.add":

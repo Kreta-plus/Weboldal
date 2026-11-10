@@ -58,3 +58,13 @@ Ha valami nem megy, a szerver terminálja `[KRÉTA]` sorokban mutatja a kérése
 Az órarendben bármelyik órára kattintva megnyílik az óra oldala: **Naplózás** (téma + jelen / hiányzik / késik, egy mentéssel) és **Jegyek** (jegybeírás erre az órára, az óra napjával és alapból az óra témájával).
 
 Csak a saját gépen futtasd (`127.0.0.1`), ne tedd ki az internetre: a tanári fiók sok diák adatához ad hozzáférést.
+
+## Hiba / ötlet bejelentése (GlitchTip)
+
+Mint a diák verzióban: az oldalsávban (telefonon a „Továbbiak” lapon) és a belépőoldalon a „📣 Hiba / ötlet” gombbal lehet írni.
+Ha egy oldal nem jelenik meg, a hibaüzenet alatti „🐞 Hiba bejelentése” gomb a hiba szövegével kitöltve nyitja meg az űrlapot.
+
+- A hiba és az ötlet a GlitchTip „Tanári” projektjébe kerül (`app: tanari` címkével), a szerverhibák pedig maguktól.
+- Nem kerül bele: a kérések törzse (jegyek, mulasztások, jelszó), sütik, lekérdezési paraméterek (diákazonosítók), tokenek. A technikai adatok (oldal, böngésző, képernyő, legutóbbi JS-hibák) csak bepipálva mennek.
+- IP-nként óránként legfeljebb 5 bejelentés.
+- Beállítás: `KT_GLITCHTIP_DSN` (üresen kikapcsolja), `KT_ENV=development` a próbákhoz, `KT_DISCORD_WEBHOOK` a Discord-értesítéshez (ezzel az „Üzenet” fajta is elérhető), `KT_FEEDBACK=0` az egészet kikapcsolja.

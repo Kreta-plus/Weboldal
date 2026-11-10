@@ -126,3 +126,30 @@ a.les-link:hover .les-go { color: var(--accent-strong); }
 .op-note code, .set-l code { font-size: .78em; padding: 1px 5px; border-radius: 6px; background: var(--bg2); }
 .op-req summary { cursor: pointer; font-weight: 650; font-size: .875rem; }
 .op-req pre { margin: 8px 0 0; padding: 10px 12px; max-height: 32vh; overflow: auto; border-radius: var(--r-inner); background: var(--bg2); font-size: .75rem; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* ---------- frissítés ---------- */
+@keyframes spin { to { transform: rotate(360deg); } }
+span.spin, #sync.spin span { display: inline-block; animation: spin .9s linear infinite; } /* a gombon csak az ikon forog */
+#sync:disabled { opacity: .45; cursor: default; }
+.sync-pill { display: none; }
+/* telefonon a „Továbbiak” lapon, ugyanúgy, mint a többi elem */
+.sheet-sync { flex-direction: column; align-items: center; gap: 4px; padding: 12px 6px; border: 0; border-radius: 16px; background: var(--surface2);
+  color: var(--text); font: inherit; font-weight: 600; font-size: .8rem; cursor: pointer; }
+.more-sheet:not([hidden]) .sheet-sync { display: flex; }
+.sheet-sync span.ic { font-size: 1.5rem; }
+@media (max-width: 800px) {
+  .sync-pill:not([hidden]) { display: flex; align-items: center; gap: 8px; position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 60;
+    padding: 6px 14px; border-radius: 999px; background: var(--text); color: var(--bg); font-weight: 600; font-size: .875rem; }
+}
+
+/* ---------- hiba / ötlet (mint a diák verzióban) ---------- */
+.bug-btn { background: none; border: 0; font: inherit; cursor: pointer; text-align: left; }
+.side-nav .bug-btn { display: flex; align-items: center; gap: 12px; padding: 7px 12px; border-radius: 999px; font-weight: 600; font-size: .9375rem; color: var(--muted); width: 100%; }
+.side-nav .bug-btn:hover { color: var(--text); background: var(--surface); }
+.side-nav .bug-btn span.ic { width: 22px; text-align: center; font-size: 1.05rem; }
+.bug-modal { width: min(520px, 100%); max-height: calc(100vh - 32px); overflow: auto; }
+.fb { display: grid; gap: 12px; }
+.fb .seg button { flex: 1; }
+.fb textarea.input { min-height: 130px; font-family: inherit; font-size: .9375rem; resize: vertical; }
+.more-sheet:not([hidden]) .bug-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 6px; border-radius: 16px; color: var(--text); font-weight: 600; font-size: .8rem; background: var(--surface2); text-align: center; }
+.more-sheet .bug-btn span.ic { font-size: 1.5rem; }

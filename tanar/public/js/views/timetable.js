@@ -22,7 +22,7 @@ export async function render(root) {
           <b>${l.nr}. ${esc(g?.className || "")} ${esc(l.subject)}</b>
           <span class="t">${l.start}–${l.end} · ${esc(l.room)}</span>
           ${l.topic ? `<span class="t">📒 ${esc(l.topic)}</span>` : ""}
-          <span class="row" style="gap:4px;flex-wrap:wrap">${l.recorded ? `<span class="chip ok">naplózva</span>` : st <= now ? `<span class="chip warn">beírandó</span>` : ""}${l.testId ? `<span class="chip warn">számonkérés</span>` : ""}${l.hwCount ? `<span class="chip">házi</span>` : ""}</span>
+          <span class="row" style="gap:4px;flex-wrap:wrap">${l.cancelled ? `<span class="chip">elmaradt</span>` : l.recorded ? `<span class="chip ok">naplózva</span>` : st <= now ? `<span class="chip warn">beírandó</span>` : ""}${l.testId ? `<span class="chip warn">számonkérés</span>` : ""}${l.hwCount ? `<span class="chip">házi</span>` : ""}</span>
           <span class="les-go small">Megnyitás ›</span>
         </a>`;
       }).join("") || `<div class="muted small" style="padding:8px">Nincs órád</div>`}</div>`;

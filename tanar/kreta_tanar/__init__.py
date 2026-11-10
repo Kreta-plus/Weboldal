@@ -1,22 +1,25 @@
 """Alkalmazás-gyár (tanári verzió): blueprintek, biztonsági fejlécek, hibakezelők."""
 from flask import Flask, jsonify, request, send_from_directory
 
-from . import db, security
+from . import db, monitoring, security
 from .config import PUBLIC_DIR
 
 
 def create_app():
+    monitoring.init()  # a Flask app előtt, hogy a Flask-integráció rákapcsolódjon
     app = Flask(__name__, static_folder=str(PUBLIC_DIR), static_url_path="")
     app.config["MAX_CONTENT_LENGTH"] = 512 * 1024
     db.init()
 
     from .blueprints.auth import bp as auth_bp
     from .blueprints.data import bp as data_bp
+    from .blueprints.feedback import bp as feedback_bp
     from .blueprints.ops import bp as ops_bp
     from .blueprints.prefs import bp as prefs_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(data_bp)
+    app.register_blueprint(feedback_bp)
     app.register_blueprint(ops_bp)
     app.register_blueprint(prefs_bp)
 

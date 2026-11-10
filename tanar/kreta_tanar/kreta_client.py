@@ -307,6 +307,25 @@ def get(uid, inst, path, params=None, fresh=False):
     return data
 
 
+REFRESH_GAP = 30          # kézi frissítés legfeljebb ennyi mp-enként (udvariasság a KRÉTA felé)
+_refreshed = {}
+# ezek nem változnak napközben, a kézi frissítés sem kéri le újra őket
+_KEEP = ("Enum/", "Tanar/Profil")
+
+
+def refresh(uid):
+    """Kézi frissítés: a tárolt KRÉTA-adatot elavultnak jelöli, így a következő olvasás újra a KRÉTA-tól kér.
+    A régi adat megmarad: ha a KRÉTA nem elérhető, az olvasás arra esik vissza. Visszaad: hány mp múlva lehet újra."""
+    now = time.time()
+    wait = _refreshed.get(uid, 0) + REFRESH_GAP - now
+    if wait > 0:
+        return int(wait) + 1
+    _refreshed[uid] = now
+    db.run("UPDATE cache SET fetched_at=0 WHERE user_id=? AND " + " AND ".join("ckey NOT LIKE ?" for _ in _KEEP),
+           (uid, *(k + "%" for k in _KEEP)))
+    return 0
+
+
 def exists(uid, inst, path, params=None):
     """Visszaolvasáshoz: van-e ilyen elem (404 = nincs)."""
     r = _call(uid, inst, "GET", path, params)

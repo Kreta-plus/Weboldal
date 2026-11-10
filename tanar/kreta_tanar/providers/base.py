@@ -10,7 +10,7 @@ feladata, hogy a KRÉTA válaszait erre alakítsa. Dátumok: "YYYY-MM-DD" szöve
   student   {"id", "name", "classId"}
   grade     {"id", "studentId", "groupId", "value": 1-5, "weight": %, "type", "topic", "date", "created": ts}
   lesson    {"id", "date", "nr", "start": "HH:MM", "end", "groupId", "classId", "subject", "room",
-             "recorded": bool, "topic": "" (haladási napló), "absent": n, "late": n, "testId", "hwCount"}
+             "recorded": bool, "cancelled": bool (elmaradt, nem kell naplózni), "topic": "" (haladási napló), "absent": n, "late": n, "testId", "hwCount"}
   homework  {"id", "groupId", "text", "given", "due", "created"}
   test      {"id", "groupId", "date", "nr", "kind", "topic", "created"}
   note      {"id", "studentId", "kind", "title", "text", "date", "created"}   # feljegyzés, dicséret, figyelmeztetés
