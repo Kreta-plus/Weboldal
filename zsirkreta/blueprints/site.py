@@ -35,8 +35,8 @@ def admin_get():
         stats={
             "users": _count("SELECT COUNT(*) FROM users WHERE inst<>?", DEMO_INST),
             "newWeek": _count("SELECT COUNT(*) FROM users WHERE inst<>? AND created>?", DEMO_INST, now - 7 * 86400),
-            "active24h": _count("SELECT COUNT(DISTINCT user_id) FROM sessions WHERE last_seen>?", now - 86400),
-            "sessions": _count("SELECT COUNT(*) FROM sessions WHERE expires>?", now),
+            "active24h": _count("SELECT COUNT(*) FROM users WHERE last_seen>?", now - 86400),
+            "active7d": _count("SELECT COUNT(*) FROM users WHERE last_seen>?", now - 7 * 86400),
             "email": _count("SELECT COUNT(*) FROM users WHERE email IS NOT NULL"),
             "demo": _count("SELECT COUNT(*) FROM users WHERE inst=?", DEMO_INST),
         },

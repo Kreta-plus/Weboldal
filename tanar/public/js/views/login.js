@@ -3,6 +3,10 @@ import { esc } from "../util.js";
 import { openBugReport, setFeedbackKinds } from "../bugreport.js";
 
 const normInst = (v) => v.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\.e-kreta\.hu.*$/, "");
+// mennyi idő után járjon le a belépés: a szerver SESSION_CHOICES kulcsai
+const KEEP = [["1h", "1 óra múlva"], ["1d", "1 nap múlva"], ["7d", "1 hét múlva"], ["30d", "30 nap múlva"], ["365d", "1 év múlva"], ["never", "Soha"]];
+const KEEP_KEY = "kt_keep";
+const lastKeep = () => { try { const k = localStorage.getItem(KEEP_KEY); if (KEEP.some(([v]) => v === k)) return k; } catch {} return "30d"; };
 
 export async function renderLogin(root, onDone) {
   let info = { demo: true, kreta: false, link: false };
@@ -10,6 +14,13 @@ export async function renderLogin(root, onDone) {
   setFeedbackKinds(info.feedback);
   root.innerHTML = `<div class="login-wrap"><div class="card login">
     <div class="hero"><img class="logo" src="/img/logo.svg" alt=""><h1>ZsírKréta</h1><div class="muted">Tanári felület: órarend, jegyek, mulasztások, házi feladatok egy helyen.</div></div>
+    <div class="login-opts">
+      <label class="keep-row"><span>A belépés lejár:</span>
+        <select class="input" id="keep" aria-label="A belépés lejárata">${KEEP.map(([k, l]) => `<option value="${k}" ${k === lastKeep() ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+      <div class="small muted" id="keephint"></div>
+      <label class="terms" id="termsrow"><input type="checkbox" id="terms">
+        <span>Elolvastam és elfogadom az <a href="/aszf" target="_blank" rel="noopener">Általános Szerződési Feltételeket</a>.</span></label>
+    </div>
     ${info.link ? `<ol class="steps">
       <li class="on" data-step="1">
         <b>Lépj be a KRÉTA-ban</b>
@@ -37,7 +48,7 @@ export async function renderLogin(root, onDone) {
       <button class="btn" style="justify-content:center" id="real" type="submit">Belépés</button></form>
       <div class="small muted" style="margin-top:8px">Ilyenkor a program tölti ki helyetted a KRÉTA belépőoldalát. Ha a KRÉTA captchát vagy kétlépcsős azonosítást kér, ez nem megy, használd a fenti lépéseket.</div></details>` : ""}
     <div id="err"></div>
-    ${info.kreta ? `<div class="small muted">Nem hivatalos program. A jelszavad csak a KRÉTA felé megy, nem tároljuk, csak egy titkosított token marad ezen a gépen.
+    ${info.kreta ? `<div class="small muted">Nem hivatalos program. A jelszavad csak a KRÉTA felé megy, nem tároljuk. A KRÉTA tokenje titkosítva ennek a böngészőnek a sütijében marad, a szerveren nem.
       Minden írás előtt megmutatja, pontosan mi megy ki a KRÉTA-ba, és csak a jóváhagyásod után küldi el.</div>` : ""}
     ${info.demo ? `${info.kreta ? `<div class="login-sep"><span>vagy</span></div>` : ""}
       <button class="btn${info.kreta ? "" : " primary"}" style="justify-content:center" id="demo">Kipróbálom teszt fiókkal</button>
@@ -53,30 +64,49 @@ export async function renderLogin(root, onDone) {
     try { sessionStorage.removeItem("kt_link"); } catch {}
     onDone();
   };
+  const keepSel = $("#keep"), terms = $("#terms"), termsRow = $("#termsrow");
+  const hint = () => ($("#keephint").textContent = { never: "Addig maradsz belépve, amíg ki nem lépsz. Közös gépen ne ezt válaszd.", "365d": "Közös gépen válassz rövidebb időt: a tanári fiók sok diák adatához ad hozzáférést." }[keepSel.value] || "");
+  hint();
+  keepSel.onchange = () => { hint(); try { localStorage.setItem(KEEP_KEY, keepSel.value); } catch {} };
+  terms.onchange = () => termsRow.classList.remove("need");
+  // minden belépéshez: a választott lejárat és az ÁSZF elfogadása; ha nincs elfogadva, null
+  const opts = () => {
+    if (terms.checked) return { keep: keepSel.value, terms: true };
+    err("A belépéshez fogadd el az Általános Szerződési Feltételeket.");
+    termsRow.classList.remove("need"); void termsRow.offsetWidth; termsRow.classList.add("need");
+    terms.focus();
+    return null;
+  };
+  const ui = { keepSel, terms, hint, opts };
 
   $("#bug")?.addEventListener("click", (e) => { e.preventDefault(); openBugReport(); });
   const demo = $("#demo");
   if (demo) demo.onclick = async () => {
-    err(""); demo.disabled = true; demo.textContent = "Iskola generálása…";
-    try { await post("/api/auth/demo"); done(); } catch (ex) { err(ex.message); demo.disabled = false; demo.textContent = "Kipróbálom teszt fiókkal"; }
+    err("");
+    const o = opts();
+    if (!o) return;
+    demo.disabled = true; demo.textContent = "Iskola generálása…";
+    try { await post("/api/auth/demo", o); done(); } catch (ex) { err(ex.message); demo.disabled = false; demo.textContent = "Kipróbálom teszt fiókkal"; }
   };
 
   const lf = $("#lf");
   if (lf) lf.onsubmit = async (e) => {
     e.preventDefault(); err("");
+    const o = opts();
+    if (!o) return;
     const btn = $("#real");
     btn.disabled = true; btn.textContent = "Belépés…";
     try {
-      await post("/api/auth/login", { inst: normInst($("#inst").value), user: $("#user").value.trim(), pass: $("#pass").value });
+      await post("/api/auth/login", { inst: normInst($("#inst").value), user: $("#user").value.trim(), pass: $("#pass").value, ...o });
       done();
     } catch (ex) { err(ex.message); btn.disabled = false; btn.textContent = "Belépés"; }
   };
 
-  if (info.link) linkFlow($, err, done, ac.signal, root);
+  if (info.link) linkFlow($, err, done, ac.signal, root, ui);
 }
 
 // belépés a KRÉTA saját oldalán: a végén kapott címet (…?code=…) a tanár visszahozza ide
-function linkFlow($, err, done, signal, root) {
+function linkFlow($, err, done, signal, root, { keepSel, terms, hint, opts }) {
   const urlIn = $("#url"), pasteBtn = $("#paste");
   const step = (n) => root.querySelectorAll(".steps li").forEach((li) => li.classList.toggle("on", +li.dataset.step === n));
   const hasCode = (t) => /[?&](code|error)=/.test(t || "");
@@ -90,10 +120,12 @@ function linkFlow($, err, done, signal, root) {
       if (manual) err("Ez nem a jó cím. A KRÉTA belépés utáni lap címét másold ki, a végén ?code=… van.");
       return;
     }
+    const o = opts();
+    if (!o) return;
     busy = true; tried = text; err("");
     pasteBtn.disabled = true; pasteBtn.textContent = "Belépés…";
     try {
-      await post("/api/auth/link/finish", { url: text, remember: true });
+      await post("/api/auth/link/finish", { url: text, ...o });
       done();
     } catch (ex) {
       err(ex.message);
@@ -119,17 +151,21 @@ function linkFlow($, err, done, signal, root) {
   window.addEventListener("focus", onBack, { signal });
   document.addEventListener("visibilitychange", onBack, { signal });
 
-  // ha a lap ugyanebben a fülben ment a KRÉTA-ra, visszatérve a 3. lépésnél folytatjuk
-  try { if (sessionStorage.getItem("kt_link")) { opened = true; step(3); } } catch {}
+  // ha a lap ugyanebben a fülben ment a KRÉTA-ra, visszatérve a 3. lépésnél folytatjuk (az elfogadott ÁSZF-fel és a lejárattal)
+  try {
+    const k = sessionStorage.getItem("kt_link");
+    if (k) { opened = true; step(3); terms.checked = true; if (KEEP.some(([v]) => v === k)) keepSel.value = k; hint(); }
+  } catch {}
 
   $("#open").onclick = async () => {
     err("");
+    if (!opts()) return;
     // a lapot még a kattintásban nyitjuk meg, különben a Safari letiltja a felugró ablakot
     const w = window.open("", "_blank");
     try {
       const r = await get("/api/auth/link/start");
       opened = true; tried = ""; step(2);
-      try { sessionStorage.setItem("kt_link", "1"); } catch {}
+      try { sessionStorage.setItem("kt_link", keepSel.value); } catch {}
       if (w) { w.opener = null; w.location.href = r.url; } else location.href = r.url;
     } catch (ex) { w?.close(); err(ex.message); }
   };

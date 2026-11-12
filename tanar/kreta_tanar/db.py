@@ -1,4 +1,7 @@
-"""SQLite réteg: felhasználók, munkamenetek, beállítások, teszt adatok, műveletek és műveletnapló."""
+"""SQLite réteg: felhasználók, beállítások, teszt adatok, műveletek és műveletnapló.
+
+A munkamenetek és a KRÉTA-tokenek nincsenek itt: titkosítva a böngésző sütijében vannak (security.py).
+"""
 import sqlite3
 import threading
 
@@ -13,21 +16,10 @@ CREATE TABLE IF NOT EXISTS users (
     inst        TEXT NOT NULL,
     username    TEXT,
     name        TEXT,
-    refresh_enc TEXT,                      -- titkosítva (Fernet), a valódi belépéshez
-    access_enc  TEXT,
-    access_exp  REAL DEFAULT 0,
     created     REAL NOT NULL,
-    last_login  REAL
+    last_login  REAL,
+    gen         INTEGER NOT NULL DEFAULT 0  -- „kilépés mindenhonnan” számláló: a régebbi sütik érvénytelenek
 );
-CREATE TABLE IF NOT EXISTS sessions (
-    sid_hash  TEXT PRIMARY KEY,
-    user_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    created   REAL NOT NULL,
-    last_seen REAL NOT NULL,
-    expires   REAL NOT NULL,
-    ua        TEXT
-);
-CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
 CREATE TABLE IF NOT EXISTS prefs (
     user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     body    TEXT NOT NULL,
@@ -87,9 +79,30 @@ def conn():
     return c
 
 
+# régebbi adatbázisokba utólag felvett oszlopok: (tábla, oszlop, típus)
+MIGRATIONS = [
+    ("users", "gen", "INTEGER NOT NULL DEFAULT 0"),
+]
+# a belépési adatok régen az adatbázisban voltak, most a sütiben: ezeket egyszer, véglegesen töröljük
+LEGACY_COLUMNS = ("refresh_enc", "access_enc", "access_exp")
+
+
 def init():
-    conn().executescript(SCHEMA)
-    conn().commit()
+    c = conn()
+    c.executescript(SCHEMA)
+    for table, col, typ in MIGRATIONS:
+        if col not in {r["name"] for r in c.execute(f"PRAGMA table_info({table})")}:
+            c.execute(f"ALTER TABLE {table} ADD COLUMN {col} {typ}")
+    c.commit()
+    cols = {r["name"] for r in c.execute("PRAGMA table_info(users)")}
+    legacy = [col for col in LEGACY_COLUMNS if col in cols]
+    if legacy or c.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='sessions'").fetchone():
+        c.execute("DROP TABLE IF EXISTS sessions")
+        for col in legacy:
+            c.execute(f"ALTER TABLE users DROP COLUMN {col}")
+        c.commit()
+        c.execute("VACUUM")  # a törölt tokenek a fájl szabad lapjain se maradjanak meg ...
+        c.execute("PRAGMA wal_checkpoint(TRUNCATE)")  # ... és a WAL-ban se
 
 
 def all_(sql, args=()):

@@ -88,14 +88,18 @@ function notices() {
   if (s.maintenanceUpcoming) out.push({ lvl: "warn", ic: "🔧", text: `Karbantartás lesz: ${fmtRange(s.maintenanceFrom, s.maintenanceUntil)}. Ez idő alatt az oldal nem érhető el.` });
   if (s.maintenance && S.user?.admin) out.push({ lvl: "danger", ic: "🔧", text: `Karbantartás folyamatban, a diákok most nem érik el az oldalt${s.maintenanceUntil ? ` (várható vége: ${fmtWhen(s.maintenanceUntil)})` : ""}.` });
   if (s.announcement) out.push({ lvl: s.announcementLevel || "info", ic: { info: "📢", warn: "⚠️", danger: "⛔" }[s.announcementLevel] || "📢", text: s.announcement });
+  // e-mailes belépés: a KRÉTA-token csak annak a böngészőnek a sütijében van, ahol a KRÉTA-ban beléptél
+  if (S.user?.needsLogin) out.push({ lvl: "warn", ic: "🔌", text: "Ezen az eszközön e-mail címmel léptél be, ezért nincs KRÉTA-kapcsolat: a legutóbb letöltött adatokat látod.",
+    action: ["Belépés a KRÉTA-ban", () => { stopAuto(); renderLogin(app, boot, { back: boot }); }] });
   return out;
 }
 function renderNotices() {
   const el = document.getElementById("notices");
   if (!el) return;
   const closed = closedNotices(), list = notices().filter((n) => !closed.includes(n.text));
-  el.innerHTML = list.map((n, i) => `<div class="announce ${n.lvl}"><span class="announce-ic" aria-hidden="true">${n.ic}</span><div class="grow">${linkify(n.text)}</div><button class="btn sm" data-i="${i}" aria-label="Értesítés bezárása">✕</button></div>`).join("");
-  el.querySelectorAll("button").forEach((b) => (b.onclick = () => {
+  el.innerHTML = list.map((n, i) => `<div class="announce ${n.lvl}"><span class="announce-ic" aria-hidden="true">${n.ic}</span><div class="grow">${linkify(n.text)}${n.action ? `<div class="announce-act"><button class="btn sm primary" data-act="${i}">${esc(n.action[0])}</button></div>` : ""}</div><button class="btn sm" data-i="${i}" aria-label="Értesítés bezárása">✕</button></div>`).join("");
+  el.querySelectorAll("[data-act]").forEach((b) => (b.onclick = () => list[b.dataset.act].action[1]()));
+  el.querySelectorAll("[data-i]").forEach((b) => (b.onclick = () => {
     try { localStorage.setItem(CLOSED_KEY, JSON.stringify([...closedNotices(), list[b.dataset.i].text].slice(-30))); } catch {}
     renderNotices();
   }));
@@ -202,10 +206,11 @@ async function refresh(force, { auto = false } = {}) {
   try {
     r = await loadBundle(force);
     loadSite().then(renderNotices); // a közlemény és a karbantartás változása is megjelenik a következő frissítéskor
-    note = r.cooldown ? "a KRÉTA lassít, kicsit várunk" : r.stale ? "a KRÉTA nem elérhető, régebbi adat" : "";
+    if (S.user.needsLogin !== !r.kreta) { S.user.needsLogin = !r.kreta; renderNotices(); }
+    note = !r.kreta ? "nincs KRÉTA-kapcsolat, tárolt adat" : r.cooldown ? "a KRÉTA lassít, kicsit várunk" : r.stale ? "a KRÉTA nem elérhető, régebbi adat" : "";
     nextAt = Date.now() + (r.wait || 0) * 1000;
     const errs = Object.keys(S.errors), errKey = errs.join();
-    if (errs.length && (!auto || errKey !== lastErrs)) toast(`Nem minden adat töltődött be (${names(errs)})`);
+    if (errs.length && r.kreta && (!auto || errKey !== lastErrs)) toast(`Nem minden adat töltődött be (${names(errs)})`);
     lastErrs = errKey;
     if (r.changed.length) toast(`Frissítve, új adat: ${names(r.changed)}`);
     else if (!auto && r.throttled) toast(`Túl gyakran frissítenél, ${secs(nextAt)} mp múlva lehet újra`);

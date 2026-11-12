@@ -12,6 +12,16 @@
       "autoPort": false
     },
     {
+      "name": "zsirkreta-test",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "KP_ENV=development KP_DATA=data/preview KP_GLITCHTIP_DSN= .venv/bin/python -c \"from zsirkreta import create_app; create_app().run(host='127.0.0.1', port=3006, threaded=True)\""
+      ],
+      "port": 3006,
+      "autoPort": false
+    },
+    {
       "name": "landerpage",
       "runtimeExecutable": "python",
       "runtimeArgs": [

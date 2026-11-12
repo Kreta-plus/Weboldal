@@ -1,15 +1,16 @@
-"""Titkosítás, munkamenetek, belépési korlát, CSRF-védelem (a diák verzióéval azonos)."""
+"""Titkosítás, munkamenetek (titkosított sütiben), belépési korlát, CSRF-védelem (a diák verzióéval azonos)."""
 import hashlib
+import json
 import os
-import secrets
 import time
+import zlib
 from functools import wraps
 
 from cryptography.fernet import Fernet, InvalidToken
 from flask import g, jsonify, request
 
 from . import db
-from .config import KEY_PATH, LOGIN_MAX_ATTEMPTS, LOGIN_WINDOW, SESSION_DAYS
+from .config import KEY_PATH, LOGIN_MAX_ATTEMPTS, LOGIN_WINDOW, SESSION_CHOICES, SESSION_DEFAULT
 
 COOKIE = "kt_sid"
 _fernet = None
@@ -31,62 +32,136 @@ def _get_fernet():
     return _fernet
 
 
-def enc(text):
-    return _get_fernet().encrypt(text.encode()).decode() if text else None
+# ---------- munkamenetek: minden a titkosított sütiben, a szerveren nincs tárolva ----------
+# A süti tartalma Fernettel titkosított és aláírt JSON (a böngésző nem tudja se olvasni, se módosítani):
+#   u: felhasználó, g: a „kilépés mindenhonnan” számláló a belépéskor, c: belépés ideje, k: választott időtartam,
+#   e: lejárat (0 = soha), w: a süti utolsó kiírása; a KRÉTA-tokenek: rt (megújító), at (hozzáférési), ax (ennek lejárata).
+# A tokenek megújításakor és a „soha” lejárat csúsztatásakor a kérés végén új süti megy ki (save_session).
+COOKIE_MAX_AGE = 400 * 86400  # a böngészők ennél tovább nem tartanak meg sütit, a „soha” ezt csúsztatja
+RENEW_AFTER = 7 * 86400       # a „soha” lejáratú süti ennyi idő után újra kiíródik
+COOKIE_LIMIT = 3900           # a böngészők a kb. 4 KB-nál nagyobb sütit eldobják
+_spill = {}                   # sha256(rt) -> (at, ax): ha a süti túl nagy lenne, a hozzáférési token csak a memóriában marad
 
 
-def dec(token):
-    if not token:
-        return None
+def _pack(sess):
+    return _get_fernet().encrypt(zlib.compress(json.dumps(sess, separators=(",", ":")).encode())).decode()
+
+
+def _unpack(raw):
     try:
-        return _get_fernet().decrypt(token.encode()).decode()
-    except (InvalidToken, ValueError):
+        sess = json.loads(zlib.decompress(_get_fernet().decrypt(raw.encode())))
+    except (InvalidToken, ValueError, zlib.error):
         return None
+    return sess if isinstance(sess, dict) and isinstance(sess.get("u"), int) else None
 
 
-# ---------- munkamenetek ----------
-def _h(sid):
-    return hashlib.sha256(sid.encode()).hexdigest()
+def _rt_key(rt):
+    return hashlib.sha256(rt.encode()).hexdigest()
 
 
-def create_session(user_id, remember=True):
-    sid = secrets.token_urlsafe(32)
-    now = time.time()
-    days = SESSION_DAYS if remember else 1
-    db.run(
-        "INSERT INTO sessions(sid_hash,user_id,created,last_seen,expires,ua) VALUES(?,?,?,?,?,?)",
-        (_h(sid), user_id, now, now, now + days * 86400, (request.headers.get("User-Agent") or "")[:200]),
+def token_fields(j):
+    """A KRÉTA token-válaszából a sütibe kerülő mezők. Ha nem jött új megújító token, a régi marad."""
+    t = {"at": j["access_token"], "ax": int(time.time() + float(j.get("expires_in", 3000)) - 30)}
+    if j.get("refresh_token"):
+        t["rt"] = j["refresh_token"]
+    return t
+
+
+def begin_session(user_id, keep, tokens=None):
+    """Új belépés: a válaszban kimegy a süti. keep: a SESSION_CHOICES egyik kulcsa."""
+    keep = keep if keep in SESSION_CHOICES else SESSION_DEFAULT
+    now = int(time.time())
+    row = db.one("SELECT gen FROM users WHERE id=?", (user_id,))
+    sess = {"u": user_id, "g": row["gen"] if row else 0, "c": now, "k": keep, "e": now + SESSION_CHOICES[keep] if SESSION_CHOICES[keep] else 0}
+    if tokens:
+        sess.update(token_fields(tokens))
+    g.sess, g.sess_dirty, g.sess_end = sess, True, False
+    return sess
+
+
+def session_changed():
+    """A munkamenet (pl. a megújított KRÉTA-token) a kérés végén új sütiként megy ki."""
+    g.sess_dirty = True
+
+
+def end_session():
+    """Kilépés: a kérés végén a süti törlődik."""
+    g.sess, g.sess_end = None, True
+
+
+def current():
+    """A kérés munkamenete (a sütiből), a load_session után."""
+    return g.get("sess")
+
+
+def has_kreta(sess=None):
+    sess = sess if sess is not None else current()
+    return bool(sess and (sess.get("rt") or sess.get("at")))
+
+
+def access_token(sess):
+    """A még érvényes hozzáférési token, ha van."""
+    at, ax = sess.get("at"), sess.get("ax", 0)
+    if not at and sess.get("rt"):
+        at, ax = _spill.get(_rt_key(sess["rt"]), (None, 0))
+    return at if at and ax > time.time() else None
+
+
+def drop_tokens(sess):
+    for k in ("rt", "at", "ax"):
+        sess.pop(k, None)
+    session_changed()
+
+
+def save_session(resp):
+    """A kérés végén: belépésnél, token-megújításnál vagy a lejárat csúsztatásánál kiírja, kilépésnél törli a sütit."""
+    if g.get("sess_end"):
+        resp.delete_cookie(COOKIE, path="/", httponly=True, samesite="Lax", secure=request.is_secure)
+        return resp
+    sess = g.get("sess")
+    if not (sess and g.get("sess_dirty")):
+        return resp
+    now = int(time.time())
+    sess["w"] = now
+    raw = _pack(sess)
+    if len(raw) > COOKIE_LIMIT and sess.get("rt") and sess.get("at"):
+        for k in [k for k, v in _spill.items() if v[1] < now]:
+            _spill.pop(k, None)
+        _spill[_rt_key(sess["rt"])] = (sess["at"], sess.get("ax", 0))
+        raw = _pack({k: v for k, v in sess.items() if k not in ("at", "ax")})
+        print(f"[munkamenet] a süti túl nagy lenne ({len(raw)} B), a hozzáférési token csak a memóriában marad")
+    resp.set_cookie(
+        COOKIE, raw, max_age=max(0, sess["e"] - now) if sess["e"] else COOKIE_MAX_AGE,
+        httponly=True, samesite="Lax", secure=request.is_secure, path="/",
     )
-    return sid, days * 86400
+    return resp
+
+
+_NONE = object()
 
 
 def load_session():
-    """Beolvassa a sütiből a munkamenetet; visszaad: user sor vagy None."""
-    sid = request.cookies.get(COOKIE)
-    if not sid:
-        return None
+    """Beolvassa a sütiből a munkamenetet (g.sess); visszaad: user sor vagy None. Kérésenként egyszer olvas."""
+    cached = g.get("_user", _NONE)
+    if cached is not _NONE:
+        return cached
+    g._user = None
+    raw = request.cookies.get(COOKIE)
+    sess = _unpack(raw) if raw else None
     now = time.time()
-    row = db.one(
-        "SELECT s.sid_hash, s.expires, s.last_seen, u.* FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.sid_hash=?",
-        (_h(sid),),
-    )
-    if not row or row["expires"] < now:
-        if row:
-            db.run("DELETE FROM sessions WHERE sid_hash=?", (_h(sid),))
+    if not sess or (sess.get("e") and sess["e"] < now):
         return None
-    if now - row["last_seen"] > 600:
-        db.run("UPDATE sessions SET last_seen=? WHERE sid_hash=?", (now, _h(sid)))
+    row = db.one("SELECT * FROM users WHERE id=?", (sess["u"],))
+    if not row or row["gen"] != sess.get("g", 0):  # törölt fiók, vagy „kilépés mindenhonnan” óta régi süti
+        return None
+    g.sess = sess
+    if not sess.get("e") and now - sess.get("w", 0) > RENEW_AFTER:
+        session_changed()
+    g._user = row
     return row
 
 
-def destroy_session():
-    sid = request.cookies.get(COOKIE)
-    if sid:
-        db.run("DELETE FROM sessions WHERE sid_hash=?", (_h(sid),))
-
-
 def purge_expired():
-    db.run("DELETE FROM sessions WHERE expires < ?", (time.time(),))
     db.run("DELETE FROM attempts WHERE ts < ?", (time.time() - 3600,))
 
 

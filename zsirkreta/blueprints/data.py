@@ -6,7 +6,7 @@ import time
 from flask import Blueprint, g, jsonify, request
 
 from .. import config as C
-from .. import db, kreta, security
+from .. import db, demo, kreta, security
 
 bp = Blueprint("data", __name__, url_prefix="/api/data")
 
@@ -83,6 +83,7 @@ def bundle():
         throttled=throttled,
         wait=round(_force_wait(uid)),
         cooldown=round(kreta.cooldown_left(uid)),
+        kreta=security.has_kreta() or g.user["inst"] == demo.DEMO_INST,  # false: e-mailes belépés, csak tárolt adat
     )
 
 

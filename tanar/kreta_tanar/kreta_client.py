@@ -6,7 +6,7 @@ Coware Napló+). Élőben nincs kipróbálva: a hibák a terminálban [KRÉTA] e
 Alapelvek (mint a diák verzióban):
   * az olvasások gyorsítótárba kerülnek, adatfajtánként eltérő ideig,
   * felhasználónként soros hívások, köztük minimális szünettel; 429/403 után szünet,
-  * a jelszót soha nem tároljuk, csak a titkosított tokeneket,
+  * a jelszót soha nem tároljuk; a tokenek a munkamenet titkosított sütijében vannak, nem az adatbázisban,
   * írásnál nincs automatikus újrapróbálás (kivéve, ha a KRÉTA 401-gyel még be sem fogadta a kérést).
 """
 import base64
@@ -169,22 +169,25 @@ def institute(j):
 
 
 def save_user(inst, username, j):
+    """A fiók felvétele vagy frissítése. A tokenek nem ide kerülnek, hanem a munkamenet sütijébe."""
     claims = jwt_claims(j["access_token"])
     inst = claims.get("kreta:institute_code") or inst
     ukey = f"{inst}:{claims.get('sub') or (username or '').lower()}"
     now = time.time()
-    exp = now + float(j.get("expires_in", 3000)) - 30
     row = db.one("SELECT id FROM users WHERE ukey=?", (ukey,))
     if row:
-        db.run("UPDATE users SET inst=?, username=?, refresh_enc=COALESCE(?,refresh_enc), access_enc=?, access_exp=?, last_login=? WHERE id=?",
-               (inst, username, security.enc(j.get("refresh_token")), security.enc(j["access_token"]), exp, now, row["id"]))
+        db.run("UPDATE users SET inst=?, username=?, last_login=? WHERE id=?", (inst, username, now, row["id"]))
         return row["id"]
-    return db.run("INSERT INTO users(ukey,inst,username,name,refresh_enc,access_enc,access_exp,created,last_login) VALUES(?,?,?,?,?,?,?,?,?)",
-                  (ukey, inst, username, claims.get("name"), security.enc(j.get("refresh_token")), security.enc(j["access_token"]), exp, now, now)).lastrowid
+    return db.run("INSERT INTO users(ukey,inst,username,name,created,last_login) VALUES(?,?,?,?,?,?)",
+                  (ukey, inst, username, claims.get("name"), now, now)).lastrowid
 
 
-# ---------- tokenek ----------
+# ---------- tokenek (a kérés munkamenetéből, azaz a sütiből) ----------
 _locks, _guard, _last, _cooldown = {}, threading.Lock(), {}, {}
+# Megújításkor a KRÉTA új megújító tokent adhat, és a régi érvénytelen lesz. Ha egy másik kérés még a régi sütivel jön
+# (párhuzamos kérés, vagy elveszett a válasz az új sütivel), itt találja meg az újat. Csak a memóriában, egy napig.
+_renewed = {}  # sha256(régi megújító token) -> az új token-mezők (security.token_fields)
+RENEWED_TTL = 24 * 3600
 
 
 def _lock(uid):
@@ -192,9 +195,18 @@ def _lock(uid):
         return _locks.setdefault(uid, threading.RLock())
 
 
-def _refresh(uid):
-    u = db.one("SELECT refresh_enc FROM users WHERE id=?", (uid,))
-    rt = security.dec(u["refresh_enc"]) if u else None
+def _adopt(sess):
+    """Ha ezt a megújító tokent közben egy másik kérés már lecserélte, átvesszük az újabbat."""
+    while sess.get("rt"):
+        newer = _renewed.get(hashlib.sha256(sess["rt"].encode()).hexdigest())
+        if not newer or newer["ax"] <= sess.get("ax", 0):
+            return
+        sess.update(newer)
+        security.session_changed()
+
+
+def _refresh(sess):
+    rt = sess.get("rt")
     if not rt:
         raise KretaError("Lejárt a belépés, jelentkezz be újra", 401, "relogin")
     try:
@@ -206,21 +218,27 @@ def _refresh(uid):
     if not r.ok or "access_token" not in j:
         print(f"[KRÉTA] token megújítás: {r.status_code} {str(j)[:200]}")
         if r.status_code in (400, 401):
-            db.run("UPDATE users SET refresh_enc=NULL, access_enc=NULL WHERE id=?", (uid,))
+            security.drop_tokens(sess)
             raise KretaError("Lejárt a belépés, jelentkezz be újra", 401, "relogin")
         raise KretaError("A KRÉTA ideiglenesen nem elérhető", 502, "net")
-    db.run("UPDATE users SET access_enc=?, access_exp=?, refresh_enc=COALESCE(?,refresh_enc) WHERE id=?",
-           (security.enc(j["access_token"]), time.time() + float(j.get("expires_in", 3000)) - 30, security.enc(j.get("refresh_token")), uid))
-    return j["access_token"]
+    t = security.token_fields(j)
+    now = time.time()
+    for k in [k for k, v in _renewed.items() if v["ax"] < now - RENEWED_TTL]:
+        _renewed.pop(k, None)
+    _renewed[hashlib.sha256(rt.encode()).hexdigest()] = t
+    sess.update(t)
+    security.session_changed()
+    return t["at"]
 
 
-def _access(uid, force=False):
-    u = db.one("SELECT access_enc, access_exp FROM users WHERE id=?", (uid,))
-    if not force and u and u["access_exp"] > time.time():
-        t = security.dec(u["access_enc"])
-        if t:
-            return t
-    return _refresh(uid)
+def _access(force=False):
+    """Hozzáférési token a kérés munkamenetéből (sütiből); lejárt vagy kérésre megújítja."""
+    sess = security.current()
+    if not security.has_kreta(sess):
+        raise KretaError("Lejárt a belépés, jelentkezz be újra", 401, "relogin")
+    _adopt(sess)
+    t = None if force else security.access_token(sess)
+    return t or _refresh(sess)
 
 
 def base_url(inst):
@@ -242,7 +260,7 @@ def _call(uid, inst, method, path, params=None, body=None):
         try:
             for attempt in (1, 2):
                 r = requests.request(method, url, params=params, json=body, timeout=20, headers={
-                    "Authorization": f"Bearer {_access(uid, force=attempt == 2)}", "User-Agent": C.TEACHER_UA})
+                    "Authorization": f"Bearer {_access(force=attempt == 2)}", "User-Agent": C.TEACHER_UA})
                 _last[uid] = time.time()
                 if r.status_code == 401 and attempt == 1:
                     continue

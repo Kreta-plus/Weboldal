@@ -4,7 +4,8 @@
     python run.py      # http://localhost:3000
 
 Szerkezet: `zsirkreta/` (config, db, security, kreta kliens, blueprints: auth / data / prefs), `public/` (css, js modulok, nézetek).
-Adatok: `data/` (SQLite + titkosítókulcs). A `data/secret.key` fájlt ne oszd meg, az védi a tárolt tokent.
+Adatok: `data/` (SQLite + titkosítókulcs). A belépés (a KRÉTA-tokenekkel együtt) nem az adatbázisban van, hanem titkosítva és aláírva a böngésző `kp_sid` sütijében; a lejáratot belépéskor a felhasználó választja (1 óra … soha). A `data/secret.key` titkosítja és írja alá ezeket a sütiket: ne oszd meg. Ha kiszivárgott, töröld (újraindításkor új készül), ezzel mindenki kilép.
+Belépni csak az Általános Szerződési Feltételek (`public/aszf.html`, címe `/aszf`) elfogadásával lehet; a szerver is ellenőrzi.
 Ha a belépés nem megy: a terminál [KRÉTA] sorai mutatják a hibás lépést; a KRETA_CLIENT_ID, KRETA_REDIRECT_URI stb. környezeti változókkal javítható.
 
 Dockerrel: `docker compose up -d --build` (http://127.0.0.1:3000). A tanári verzió: `docker compose up -d --build tanar` (http://127.0.0.1:3100), lásd `tanar/README.md`. Az adatok a `zsirkreta-data` kötetben vannak, ezt mentsd. Kifelé HTTPS-es proxy (nginx, Caddy) mögé tedd; proxy nélkül állítsd `KP_TRUST_PROXY=0`-ra.

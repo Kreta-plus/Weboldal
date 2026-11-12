@@ -1,4 +1,7 @@
-"""Belépés: KRÉTA-fiókkal (a KRÉTA saját oldalán vagy jelszóval), teszt fiókkal; kilépés, fiók törlése."""
+"""Belépés: KRÉTA-fiókkal (a KRÉTA saját oldalán vagy jelszóval), teszt fiókkal; kilépés, fiók törlése.
+
+A munkamenet és a KRÉTA-tokenek a titkosított sütiben vannak (security.py); a lejáratot belépéskor a tanár választja.
+"""
 import secrets
 import time
 from urllib.parse import parse_qs, urlparse
@@ -17,14 +20,17 @@ _pending = {}
 PID_COOKIE = "kt_pid"
 
 
-def _start(uid, remember):
-    sid, max_age = security.create_session(uid, remember)
-    resp = make_response(jsonify(ok=True))
-    resp.set_cookie(
-        security.COOKIE, sid, max_age=max_age if remember else None,
-        httponly=True, samesite="Lax", secure=request.is_secure, path="/",
-    )
-    return resp
+TERMS_ERROR = "A belépéshez fogadd el az Általános Szerződési Feltételeket"
+
+
+def _terms(d):
+    return d.get("terms") is True
+
+
+def _start(uid, d, tokens=None):
+    """Belépés: a süti a kérés végén megy ki (security.save_session), a választott lejárattal."""
+    security.begin_session(uid, d.get("keep"), tokens)
+    return make_response(jsonify(ok=True))
 
 
 def _client_ip():
@@ -45,6 +51,8 @@ def login():
     user, pw, inst = (d.get("user") or "").strip(), d.get("pass") or "", (d.get("inst") or "").strip().lower()
     if not (user and pw and inst):
         return jsonify(error="Töltsd ki az összes mezőt"), 400
+    if not _terms(d):
+        return jsonify(error=TERMS_ERROR, code="terms"), 400
     keys = (f"ip:{_client_ip()}", f"u:{inst}:{user.lower()}")
     if security.too_many_attempts(*keys):
         return jsonify(error="Túl sok próbálkozás, várj pár percet", code="throttle"), 429
@@ -55,7 +63,7 @@ def login():
     except kreta_client.KretaError as e:
         return jsonify(error=e.msg, code=e.code), e.status
     security.clear_attempts(*keys)
-    return _start(kreta_client.save_user(inst, user, j), bool(d.get("remember", True)))
+    return _start(kreta_client.save_user(inst, user, j), d, j)
 
 
 # ---- belépés a KRÉTA saját oldalán: a végén kapott címet a tanár beilleszti ----
@@ -86,6 +94,8 @@ def link_finish():
     code = (q.get("code") or [""])[0]
     if not code:
         return jsonify(error="Nem találtam kódot a címben. A cím végén ?code=… kell legyen."), 400
+    if not _terms(d):
+        return jsonify(error=TERMS_ERROR, code="terms"), 400
     key = f"ip:{_client_ip()}"
     if security.too_many_attempts(key):
         return jsonify(error="Túl sok próbálkozás, várj pár percet", code="throttle"), 429
@@ -108,7 +118,7 @@ def link_finish():
     except kreta_client.KretaError as e:
         return jsonify(error=e.msg, code=e.code), e.status
     security.clear_attempts(key)
-    resp = _start(kreta_client.save_user(inst, None, j), bool(d.get("remember", True)))
+    resp = _start(kreta_client.save_user(inst, None, j), d, j)
     resp.delete_cookie(PID_COOKIE, path="/api/auth")
     return resp
 
@@ -118,6 +128,9 @@ def demo_login():
     """Teszt fiók: minden belépés új, különálló iskolát generál (jelszó és KRÉTA nélkül)."""
     if not C.DEMO_ENABLED:
         return jsonify(error="A teszt fiók ki van kapcsolva"), 403
+    d = request.get_json(silent=True) or {}
+    if not _terms(d):
+        return jsonify(error=TERMS_ERROR, code="terms"), 400
     key = f"demo:{_client_ip()}"
     if security.too_many_attempts(key):
         return jsonify(error="Túl sok teszt fiók, várj pár percet", code="throttle"), 429
@@ -128,7 +141,7 @@ def demo_login():
         "INSERT INTO users(ukey,inst,username,name,created,last_login) VALUES(?,?,?,?,?,?)",
         (f"demo:{secrets.token_hex(8)}", C.DEMO_INST, "teszt", None, now, now),
     ).lastrowid
-    return _start(uid, True)
+    return _start(uid, d)
 
 
 @bp.get("/me")
@@ -136,21 +149,29 @@ def me():
     row = security.load_session()
     if not row:
         return jsonify(loggedIn=False)
-    return jsonify(loggedIn=True, user={"id": row["id"], "inst": row["inst"], "demo": row["inst"] == C.DEMO_INST})
+    s = security.current()
+    return jsonify(loggedIn=True, user={"id": row["id"], "inst": row["inst"], "demo": row["inst"] == C.DEMO_INST,
+                                        "session": {"created": s["c"], "expires": s["e"] or None, "keep": s["k"]}})
 
 
 @bp.post("/logout")
 def logout():
-    security.destroy_session()
-    resp = make_response(jsonify(ok=True))
-    resp.delete_cookie(security.COOKIE, path="/")
-    return resp
+    security.end_session()
+    return jsonify(ok=True)
+
+
+@bp.post("/logout-all")
+@security.login_required
+def logout_all():
+    """Minden eszközön kiléptet: a számláló növelésével minden eddig kiadott süti érvénytelen lesz."""
+    db.run("UPDATE users SET gen=gen+1 WHERE id=?", (g.user["id"],))
+    security.end_session()
+    return jsonify(ok=True)
 
 
 @bp.post("/account/delete")
 @security.login_required
 def delete_account():
     db.run("DELETE FROM users WHERE id=?", (g.user["id"],))
-    resp = make_response(jsonify(ok=True))
-    resp.delete_cookie(security.COOKIE, path="/")
-    return resp
+    security.end_session()
+    return jsonify(ok=True)

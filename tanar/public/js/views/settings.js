@@ -1,6 +1,6 @@
 import { post } from "../api.js";
 import { S, PALETTES, savePrefs } from "../state.js";
-import { esc } from "../util.js";
+import { esc, fmtFull, fmtTime } from "../util.js";
 
 const SWATCHES = ["#ffe14d", "#e8c468", "#ff9f43", "#ff7a59", "#ff4d4d", "#ff5fa2", "#ff3df0", "#b79cff",
   "#8a7dff", "#3d5cff", "#5cc8ff", "#88c0d0", "#00d1c1", "#45e3a0", "#c6f25c", "#ffffff"];
@@ -17,6 +17,7 @@ const sec = (k, title, body) => `<section class="set-sec" data-sec="${k}" ${sect
 
 export function render(root) {
   const p = S.prefs, pal = PALETTES[p.palette] ? p.palette : "desk", lightPv = document.documentElement.dataset.theme === "light", caps = new Set(S.ov.capabilities);
+  const ss = S.user?.session || {}, when = (ts) => `${fmtFull(ts * 1000)} ${fmtTime(ts * 1000)}`;
   root.innerHTML = `<div class="topbar"><div><h1>Beállítások</h1></div></div>
     <div class="settings"><nav class="set-nav" aria-label="Beállítások témakörei">${SECTIONS.map(([k, l, ic]) => `<button data-sec="${k}" class="${section === k ? "on" : ""}"><span aria-hidden="true">${ic}</span>${l}</button>`).join("")}</nav>
     <div class="card">
@@ -34,8 +35,11 @@ export function render(root) {
       <div class="set-row wide"><div class="set-l"><b>Műveletek</b><div class="small muted">Minden írás előtt megjelenik, pontosan mi kerül be; a jóváhagyás után a program visszaolvassa és a Műveletnaplóba írja.</div></div>
         <div class="set-c"><div class="list">${OPS.filter(([k]) => S.ov.demo || k !== "absence.record").map(([k, l]) => `<div class="item"><span>${!caps.has(k) ? "—" : S.ov.demo || (S.ov.enabledOps || []).includes(k) ? "✅" : "🔒"}<code class="small muted" style="margin-left:6px">${esc(k)}</code></span><div class="grow">${esc(l)}</div>${k ? `<span class="chip ${caps.has(k) ? (S.ov.demo || (S.ov.enabledOps || []).includes(k) ? "ok" : "") : ""}">${!caps.has(k) ? "nem támogatott" : S.ov.demo ? "szimulált" : (S.ov.enabledOps || []).includes(k) ? "éles" : "csak előnézet"}</span>` : ""}</div>`).join("")}</div></div></div>`)}
     ${sec("account", "Fiók", `
-      ${row("Kilépés", "", `<button class="btn" id="lo">Kilépés</button>`)}
-      ${row("Fiók törlése", S.ov.demo ? "A teszt iskola és a műveletnapló is törlődik." : "A tárolt token, a beállítások és a műveletnapló törlődik. A KRÉTA-ban semmi nem változik.", `<button class="btn danger" id="del">Törlés</button>`)}`)}
+      ${row("Ez az eszköz", `A belépésed${S.ov.demo ? "" : " és a KRÉTA tokenje"} titkosítva ennek a böngészőnek a sütijében van, a szerveren nem tároljuk. A jelszavadat sehol nem tároljuk. A lejáratot belépéskor választod.`,
+        `<div class="small">Belépve: <b>${ss.created ? when(ss.created) : "–"}</b><br>Lejár: <b>${ss.expires ? when(ss.expires) : "soha"}</b></div>`)}
+      ${row("Kilépés", "Mindenhonnan: minden eszközön kiléptet, pl. ha egy közös gépen bent maradtál.", `<div class="row wrap"><button class="btn" id="lo">Kilépés</button><button class="btn" id="loa">Kilépés mindenhonnan</button></div>`)}
+      ${row("Általános Szerződési Feltételek", "", `<a class="btn" href="/aszf" target="_blank" rel="noopener">Megnyitás</a>`)}
+      ${row("Fiók törlése", S.ov.demo ? "A teszt iskola és a műveletnapló is törlődik." : "A beállítások, a KRÉTA-adatok másolata és a műveletnapló törlődik. A KRÉTA-ban semmi nem változik.", `<button class="btn danger" id="del">Törlés</button>`)}`)}
     </div></div>`;
   const $ = (s) => root.querySelector(s);
   root.querySelectorAll(".set-nav button").forEach((b) => (b.onclick = () => {
@@ -50,6 +54,7 @@ export function render(root) {
   $("#fs").oninput = (e) => savePrefs({ fontScale: +e.target.value });
   $("#sv").onchange = (e) => savePrefs({ startView: e.target.value }, { silent: false });
   $("#lo").onclick = async () => { await post("/api/auth/logout"); location.hash = ""; location.reload(); };
+  $("#loa").onclick = async () => { await post("/api/auth/logout-all"); location.hash = ""; location.reload(); };
   $("#del").onclick = async () => {
     if (!confirm("Biztosan törlöd a fiókot?")) return;
     await post("/api/auth/account/delete"); location.hash = ""; location.reload();
