@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#221a15">
   <title>ZsírKréta – a KRÉTA-d, átláthatóan</title>
-  <meta name="description" content="ZsírKréta: jegyek, órarend, házi és statisztikák egy helyen, a saját neveiddel és színeiddel. Nem hivatalos KRÉTA-kliens diákoknak, weben és Androidon.">
+  <meta name="description" content="ZsírKréta: jegyek, órarend, házi és statisztikák egy helyen, a saját neveiddel és színeiddel. Nem hivatalos KRÉTA-kliens diákoknak: töltsd le Androidra, a webes változat fejlesztés alatt áll.">
   <link rel="icon" href="img/logo.svg" type="image/svg+xml">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- a data-app linkek címét a script.js elején lévő APP_URL adja -->
+  <!-- a data-apk linkek a legújabb APK-ra mutatnak: a script.js a GitHubról olvassa ki, melyik az; ha nem sikerül, a 2.5-ös marad -->
   <header class="top">
     <a class="brand" href="#"><img src="img/logo.svg" alt="" width="36" height="36">ZsírKréta</a>
     <nav class="top-nav" aria-label="Oldal">
@@ -19,20 +19,21 @@
       <a href="#kinezet">Kinézet</a>
       <a href="#gyik">Kérdések</a>
     </nav>
-    <a class="btn small" href="http://127.0.0.1:3000" data-app>Megnyitás</a>
+    <a class="btn small" href="#letoltes">Letöltés</a>
   </header>
 
   <main>
     <!-- ---------- hős ---------- -->
     <section class="hero">
       <div class="hero-text">
+        <p class="status"><span class="status-dot" aria-hidden="true"></span>A webes változat még készül, Androidra már letölthető.</p>
         <h1>A KRÉTA-d, végre átláthatóan.</h1>
         <p class="lead">Jegyek, órarend, házi és hiányzások egy helyen. Látod, hány ötös kell még, átnevezheted a tanáraidat, és olyan színű lesz, amilyet szeretnél.</p>
         <div class="cta">
-          <a class="btn" href="http://127.0.0.1:3000" data-app>Belépek a KRÉTA-fiókommal</a>
-          <a class="btn ghost" href="http://127.0.0.1:3000" data-app>Kipróbálom teszt fiókkal</a>
+          <a class="btn" href="https://raw.githubusercontent.com/Kreta-plus/ZsirKretaAndroidApp/main/updates/ZsirKreta-2.5.apk" data-apk><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-5-5m5 5 5-5M5 20h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Letöltés Androidra</a>
+          <a class="btn ghost" href="#letoltes">Hogyan telepítsem?</a>
         </div>
-        <p class="fine">A teszt fiókhoz nem kell KRÉTA-belépés, kitalált adatokkal nézhetsz körül.</p>
+        <p class="fine" data-apk-meta>Verzió: 2.5 · 9,3 MB · Android 8.0 vagy újabb</p>
       </div>
 
       <div class="hero-stage" aria-hidden="true">
@@ -74,6 +75,42 @@
       </div>
     </section>
 
+    <!-- ---------- letöltés ---------- -->
+    <section class="dl" id="letoltes">
+      <div class="dl-main">
+        <h2>Töltsd le Androidra.</h2>
+        <p class="dl-lead">Az Android alkalmazás ingyenes, és mindent tud, amit ezen az oldalon látsz. Nem a Play Áruházból jön, hanem közvetlenül tőlünk, a GitHubról.</p>
+        <a class="btn big" href="https://raw.githubusercontent.com/Kreta-plus/ZsirKretaAndroidApp/main/updates/ZsirKreta-2.5.apk" data-apk><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-5-5m5 5 5-5M5 20h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Letöltés (APK)</a>
+        <p class="fine" data-apk-meta>Verzió: 2.5 · 9,3 MB · Android 8.0 vagy újabb</p>
+        <ol class="dl-steps">
+          <li><div><b>Töltsd le</b> az APK fájlt a fenti gombbal, lehetőleg rögtön a telefonodon.</div></li>
+          <li><div><b>Nyisd meg</b> a letöltött fájlt. Ha a telefon kéri, engedélyezd a böngésződnek az „ismeretlen alkalmazások telepítését”.</div></li>
+          <li><div><b>Telepítsd,</b> és lépj be a KRÉTA-fiókoddal. Az új verziókat az app magától jelzi, nem kell ide visszajönnöd.</div></li>
+        </ol>
+        <p class="fine">Csak Androidra (8.0 vagy újabb), iPhone-ra egyelőre nincs. A korábbi verziók a <a href="https://github.com/Kreta-plus/ZsirKretaAndroidApp" target="_blank" rel="noopener noreferrer">GitHubon</a> vannak.</p>
+      </div>
+
+      <aside class="dl-side">
+        <div class="dl-card">
+          <h3>A <span data-apk-version>2.5</span> verzió újdonságai</h3>
+          <p class="dl-date" data-apk-date>2026. november 5.</p>
+          <ul data-apk-notes>
+            <li>Új: a belépés akkor is megmarad, ha napokig nem nyitod meg az appot (a háttérben naponta kétszer megújítja a KRÉTA-belépést)</li>
+            <li>Javítva: a KRÉTA átmeneti hibáinál (szerverhiba, karbantartás) az app nem léptet ki, hanem később újrapróbálja</li>
+            <li>Új: automatikus hibajelentés, hogy a hibákat gyorsabban javíthassuk</li>
+          </ul>
+          <details>
+            <summary>Ellenőrző összeg (SHA-256)</summary>
+            <code data-apk-sha>ec86ec476e8f2ff604197da4d4a2bca56e091f5544bf851af2a365bba79f2b20</code>
+          </details>
+        </div>
+        <div class="dl-card wip">
+          <h3>🚧 A webes alkalmazás még készül</h3>
+          <p>A böngészős változaton még dolgozunk, ezért most nem lehet megnyitni. Amíg elkészül, használd az Android appot. Ha szeretnéd tudni, mikor indul, gyere a <a href="https://discord.gg/ufyyQUxnKG" target="_blank" rel="noopener noreferrer">Discord-szerverünkre</a>.</p>
+        </div>
+      </aside>
+    </section>
+
     <!-- ---------- funkciók ---------- -->
     <section class="features" id="tud">
       <div class="features-head">
@@ -88,7 +125,7 @@
         <li><span class="dot o">🎒</span><div><h3>Táska</h3><p>Megadod, mit kell vinni az egyes órákra, és este kiírja, mi kerüljön a táskába holnapra.</p></div></li>
         <li><span class="dot y">🏷️</span><div><h3>Saját nevek</h3><p>A „Magyar nyelv és irodalom” lehet egyszerűen „Irodalom”, a tanáraid pedig azon a néven szerepelnek, ahogy te hívod őket.</p></div></li>
         <li><span class="dot s">📸</span><div><h3>Story kép</h3><p>Egy gombnyomásra kész kép az átlagodról és a legjobb eredményeidről, Instagramra méretezve.</p></div></li>
-        <li><span class="dot g">🤖</span><div><h3>Weben és Androidon</h3><p>Böngészőben gépen és telefonon is megy, és van natív Android alkalmazás is ugyanezekkel a funkciókkal.</p></div></li>
+        <li><span class="dot g">🤖</span><div><h3>Androidon már most</h3><p>A natív Android alkalmazás már letölthető. A böngészős változat, ami gépen és iPhone-on is megy majd, fejlesztés alatt áll.</p></div></li>
       </ul>
     </section>
 
@@ -191,8 +228,8 @@
     <section class="safe">
       <h2>A jelszavad nálad marad.</h2>
       <div class="safe-cols">
-        <p><b>A belépés a KRÉTA saját oldalán történik.</b> A jelszavadat a ZsírKréta nem látja és nem tárolja. A belépésed titkosítva a böngésződ sütijében marad, nem a szerveren, és te döntöd el, meddig maradj belépve.</p>
-        <p><b>Kíméli a KRÉTA szerverét.</b> Percenként frissít magától, de csak amíg nyitva van az oldal, és a frissítés gombot sem lehet egymás után nyomkodni. Ha a KRÉTA lassít, kivárja.</p>
+        <p><b>A belépés a KRÉTA saját oldalán történik.</b> A jelszavadat a ZsírKréta nem látja és nem tárolja, az appba sem kerül bele.</p>
+        <p><b>Kíméli a KRÉTA szerverét.</b> Percenként frissít magától, de a KRÉTA felé legfeljebb percenként fordul, és a frissítés gombot sem lehet egymás után nyomkodni. Ha a KRÉTA lassít, kivárja.</p>
         <p><b>Bármikor törölheted.</b> A Beállításokban egy gombbal kiléphetsz minden eszközről, vagy törölheted a fiókodat az összes mentett beállítással együtt.</p>
       </div>
     </section>
@@ -200,6 +237,14 @@
     <!-- ---------- GYIK ---------- -->
     <section class="faq" id="gyik">
       <h2>Kérdések</h2>
+      <details>
+        <summary>Mikor lesz kész a webes változat?</summary>
+        <p>Még dolgozunk rajta, ezért most nem lehet megnyitni. Addig az Android app tudja ugyanezt. Amikor elindul, a <a href="https://discord.gg/ufyyQUxnKG" target="_blank" rel="noopener noreferrer">Discord-szerverünkön</a> szólunk.</p>
+      </details>
+      <details>
+        <summary>Miért nem a Play Áruházból kell letölteni? Biztonságos?</summary>
+        <p>Az appot közvetlenül a <a href="https://github.com/Kreta-plus/ZsirKretaAndroidApp" target="_blank" rel="noopener noreferrer">GitHubról</a> adjuk ki, ezért a telefon rákérdez, hogy engedélyezed-e a telepítést, és a Play Protect is figyelmeztethet. Ez minden Play Áruházon kívüli appnál így van. Ha biztosra mennél, a letöltött fájl SHA-256 összegét összevetheted a fent látható értékkel. Az új verziókat az app maga tölti le és ellenőrzi.</p>
+      </details>
       <details>
         <summary>Ez a hivatalos KRÉTA?</summary>
         <p>Nem. A ZsírKréta egy független alkalmazás, ami a saját KRÉTA-fiókod adatait mutatja meg másképp. Nem áll kapcsolatban az eKRÉTA fejlesztőjével.</p>
@@ -225,7 +270,8 @@
     <section class="last">
       <img src="img/logo.svg" alt="" width="72" height="72">
       <h2>Nézz bele egy perc alatt.</h2>
-      <a class="btn" href="/" data-app>Kipróbálom teszt fiókkal</a>
+      <a class="btn" href="https://raw.githubusercontent.com/Kreta-plus/ZsirKretaAndroidApp/main/updates/ZsirKreta-2.5.apk" data-apk><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-5-5m5 5 5-5M5 20h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Letöltés Androidra</a>
+      <p class="fine">A webes változat hamarosan érkezik.</p>
     </section>
   </main>
 

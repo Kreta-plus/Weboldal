@@ -38,6 +38,7 @@ img { display: block; }
 :focus-visible { outline: 3px solid var(--yellow); outline-offset: 3px; border-radius: 6px; }
 
 main > section { max-width: var(--wrap); margin: 0 auto; padding: clamp(56px, 9vw, 112px) var(--gutter); }
+main > section[id] { scroll-margin-top: 24px; } /* a ragadós fejléc ne takarja ki a címet */
 h2 { font-size: clamp(2rem, 4.4vw, 3.1rem); max-width: 18ch; }
 
 /* ---------- gombok ---------- */
@@ -50,6 +51,8 @@ h2 { font-size: clamp(2rem, 4.4vw, 3.1rem); max-width: 18ch; }
 .btn.ghost { background: transparent; color: var(--paper); box-shadow: inset 0 0 0 2px var(--line); }
 .btn.ghost:hover { box-shadow: inset 0 0 0 2px var(--yellow); }
 .btn.small { min-height: 40px; padding: 0 18px; font-size: .9rem; }
+.btn.big { min-height: 60px; padding: 0 32px; font-size: 1.1rem; }
+.btn svg { width: 20px; height: 20px; margin-right: 10px; flex: none; }
 
 /* ---------- fejléc ---------- */
 .top {
@@ -68,6 +71,15 @@ h2 { font-size: clamp(2rem, 4.4vw, 3.1rem); max-width: 18ch; }
 .lead { margin-top: 22px; max-width: 34em; font-size: 1.2rem; color: var(--dust); }
 .cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px; }
 .fine { margin-top: 14px; font-size: .9rem; color: var(--dust); }
+.fine a { color: var(--paper); }
+
+/* fejlesztési állapot: a webes változat még készül */
+.status {
+  display: inline-flex; align-items: center; gap: 10px; margin-bottom: 22px; padding: 7px 16px 7px 12px; border-radius: 999px;
+  background: var(--wood); box-shadow: inset 0 0 0 1px var(--line); font-size: .9rem; font-weight: 600; line-height: 1.35;
+}
+.status-dot { flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--orange); animation: pulse 2s ease-in-out infinite; }
+@keyframes pulse { 50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--orange) 25%, transparent); } }
 
 .hero-stage { position: relative; display: grid; place-items: center end; min-height: 640px; }
 .scribble { position: absolute; top: 0; left: -14%; width: 92%; height: 100%; overflow: visible; }
@@ -118,6 +130,28 @@ h2 { font-size: clamp(2rem, 4.4vw, 3.1rem); max-width: 18ch; }
   font: 700 .95rem var(--display); color: var(--ink);
 }
 .g5 { background: var(--mint); } .g4 { background: var(--sky); } .g3 { background: var(--yellow); } .g2 { background: var(--orange); } .g1 { background: var(--pink); }
+
+/* ---------- letöltés ---------- */
+.dl { display: grid; grid-template-columns: 1.1fr .9fr; gap: clamp(32px, 6vw, 88px); align-items: start; }
+.dl-lead { margin-top: 18px; color: var(--dust); max-width: 32em; }
+.dl-main .btn { margin-top: 28px; }
+.dl-steps { list-style: none; counter-reset: step; margin: 36px 0 0; padding: 0; }
+.dl-steps li { counter-increment: step; display: grid; grid-template-columns: 40px 1fr; gap: 16px; align-items: center; padding: 16px 0; border-top: 1px solid var(--line); color: var(--dust); }
+.dl-steps li:last-child { border-bottom: 1px solid var(--line); }
+.dl-steps li::before { content: counter(step); display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--yellow); color: var(--ink); font: 700 1.1rem var(--display); }
+.dl-steps b { color: var(--paper); }
+.dl-side { display: grid; gap: 16px; }
+.dl-card { background: var(--wood); border-radius: 28px; padding: clamp(20px, 3vw, 30px); }
+.dl-card h3 { font-size: 1.3rem; }
+.dl-card p { color: var(--dust); }
+.dl-card p a { color: var(--paper); }
+.dl-date { margin-top: 4px; font-size: .9rem; }
+.dl-card ul { margin: 16px 0 0; padding-left: 1.1em; display: grid; gap: 8px; }
+.dl-card details { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); font-size: .85rem; color: var(--dust); }
+.dl-card summary { cursor: pointer; font-weight: 600; }
+.dl-card code { display: block; margin-top: 8px; font-size: .78rem; overflow-wrap: anywhere; color: var(--paper); }
+.dl-card.wip { background: transparent; border: 2px dashed color-mix(in srgb, var(--orange) 55%, var(--line)); }
+.dl-card.wip h3 { margin-bottom: 10px; }
 
 /* ---------- funkciók ---------- */
 .features { display: grid; grid-template-columns: .8fr 1.2fr; gap: clamp(32px, 6vw, 88px); align-items: start; }
@@ -219,13 +253,15 @@ h2 { font-size: clamp(2rem, 4.4vw, 3.1rem); max-width: 18ch; }
 /* ---------- zárás ---------- */
 .last { text-align: center; display: grid; justify-items: center; gap: 22px; }
 .last h2 { max-width: none; }
+.last .fine { margin-top: -8px; }
+.faq details p a { color: var(--paper); }
 .foot { max-width: var(--wrap); margin: 0 auto; padding: 28px var(--gutter) 40px; border-top: 1px solid var(--line); color: var(--dust); font-size: .85rem; }
 
 /* ---------- reszponzív ---------- */
 @media (max-width: 900px) {
   .top-nav { display: none; }
   .top .btn { margin-left: auto; }
-  .hero, .features, .calc { grid-template-columns: 1fr; }
+  .hero, .features, .calc, .dl { grid-template-columns: 1fr; }
   .hero-stage { min-height: 600px; place-items: center; }
   .scribble { left: -6%; width: 112%; }
   .phone { margin-right: 0; }
@@ -237,12 +273,13 @@ h2 { font-size: clamp(2rem, 4.4vw, 3.1rem); max-width: 18ch; }
 @media (max-width: 420px) {
   .phone { width: 272px; }
   .screen { height: 560px; }
-  .cta .btn { width: 100%; }
+  .cta .btn, .dl-main .btn { width: 100%; }
   .calc-out { grid-template-columns: 1fr; gap: 8px; }
   .calc-add > span, .calc-target > span { width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .scribble .z { animation: none; stroke-dashoffset: 0; }
+  .status-dot { animation: none; }
   .btn, .m, .m-card, .m-day { transition: none; }
 }
