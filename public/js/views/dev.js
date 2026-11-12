@@ -28,7 +28,7 @@ export async function render(root) {
   root.innerHTML = `<div class="topbar"><div><h1>Fejlesztői oldal</h1><div class="sub">Az egész oldalra érvényes beállítások: mentés után mindenkinél azonnal érvényesek.</div></div></div>
   <div class="grid g4 kp">
     <div class="card kpi"><div class="v">${st.users}</div><div class="l">Diák (KRÉTA-fiók)</div><div class="d">+${st.newWeek} az elmúlt 7 napban</div></div>
-    <div class="card kpi"><div class="v">${st.active24h}</div><div class="l">Aktív az elmúlt napban</div><div class="d">${st.sessions} élő munkamenet</div></div>
+    <div class="card kpi"><div class="v">${st.active24h}</div><div class="l">Aktív az elmúlt napban</div><div class="d">${st.active7d} az elmúlt 7 napban</div></div>
     <div class="card kpi"><div class="v">${st.email}</div><div class="l">E-mailes belépés</div><div class="d">${d.devs.filter((x) => x.claimed).length} fejlesztői fiók</div></div>
     <div class="card kpi"><div class="v">${st.demo}</div><div class="l">Teszt fiók</div><div class="d">7 nap után törlődnek</div></div>
   </div>

@@ -52,13 +52,17 @@ def create_app():
         )
         if request.path.startswith("/api/"):
             resp.headers["Cache-Control"] = "no-store"
-        elif request.path.endswith((".html", ".js", ".css", "/")):
+        elif request.path.endswith((".html", ".js", ".css", "/", "/aszf")):
             resp.headers["Cache-Control"] = "no-cache"
-        return resp
+        return security.save_session(resp)  # belépés, token-megújítás: a munkamenet sütije
 
     @app.get("/")
     def index():
         return send_from_directory(app.static_folder, "index.html")
+
+    @app.get("/aszf")
+    def terms():
+        return send_from_directory(app.static_folder, "aszf.html")
 
     @app.get("/api/health")
     def health():

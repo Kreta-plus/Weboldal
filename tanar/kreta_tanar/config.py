@@ -45,7 +45,10 @@ DISCORD_WEBHOOK = os.environ.get("KT_DISCORD_WEBHOOK", "")
 FEEDBACK_ENABLED = os.environ.get("KT_FEEDBACK", "1") != "0"
 
 # --- Munkamenet / belépés ---
-SESSION_DAYS = 30            # tanári fióknál rövidebb, mint a diáknál
+# A belépés minden adata (a KRÉTA-tokenek is) titkosítva a böngésző sütijében van, a szerveren nincs tárolva.
+# Belépéskor választható, mennyi idő után járjon le (másodperc; 0 = soha). Alapból rövidebb, mint a diáknál.
+SESSION_CHOICES = {"1h": 3600, "1d": 86400, "7d": 7 * 86400, "30d": 30 * 86400, "365d": 365 * 86400, "never": 0}
+SESSION_DEFAULT = "30d"
 LOGIN_MAX_ATTEMPTS = 5
 LOGIN_WINDOW = 10 * 60
 

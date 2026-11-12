@@ -6,6 +6,7 @@
 Dockerrel (a projekt gyökeréből): `docker compose up -d --build tanar`, aztán http://127.0.0.1:3100. Az adatok a `zsirkreta-tanar-data` kötetben vannak. A `KT_...` beállítások a `docker-compose.yml` `tanar` részében adhatók meg.
 
 Ugyanaz a kinézet, mint a diák verzióé (a `public/css/app.css` másolata + `tanar.css`), de külön szerver, külön adatbázis (`tanar/data/`).
+A belépés (a KRÉTA-tokenekkel együtt) itt sem az adatbázisban van, hanem titkosítva és aláírva a böngésző `kt_sid` sütijében, a belépéskor választott lejárattal (alapból 30 nap). A `tanar/data/secret.key` titkosítja és írja alá: ne oszd meg; ha kiszivárgott, töröld, ezzel mindenki kilép. Belépni csak az ÁSZF (`/aszf`) elfogadásával lehet.
 
 **Teszt fiók:** a belépőoldalon „Kipróbálom teszt fiókkal”. Generál egy iskolát (3 osztály, 5 csoport, ~75 diák, órarend, jegyek, házik, számonkérések, mulasztások, haladási napló, feljegyzések). Minden művelet kipróbálható, de csak szimulált; a KRÉTA-hoz semmi nem megy ki. `KT_DEMO=0` kikapcsolja.
 

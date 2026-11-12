@@ -1,6 +1,6 @@
 import { S as ST, savePrefs, allSubjects, subjName, PALETTES } from "../state.js";
-import { get, post } from "../api.js";
-import { esc, toast, ago, iso } from "../util.js";
+import { post } from "../api.js";
+import { esc, toast, iso, fmtFull, fmtTime } from "../util.js";
 import { randomDisclaimer } from "../funny.js";
 import { TRANSITIONS, preview } from "../transition.js";
 
@@ -82,12 +82,11 @@ let section = "look";
 
 export async function render(root) {
   const p = ST.prefs;
-  let sessions = [];
-  try { sessions = await get("/api/auth/sessions"); } catch {}
   const subs = allSubjects();
   const pal = PALETTES[p.palette] ? p.palette : "desk";
   const tr = p.transition || "fade", trMs = p.transitionMs ?? 250;
-  const u = ST.user || {};
+  const u = ST.user || {}, ss = u.session || {};
+  const when = (ts) => `${fmtFull(ts * 1000)} ${fmtTime(ts * 1000)}`;
   const lightPv = document.documentElement.dataset.theme === "light"; // a téma-előnézet a mostani módhoz igazodik
   const row = (label, desc, control, wide = false) => `<div class="set-row ${wide ? "wide" : ""}"><div class="set-l"><b>${label}</b>${desc ? `<div class="small muted">${desc}</div>` : ""}</div><div class="set-c">${control}</div></div>`;
   const toggle = (id, on, cls = "", data = "") => `<label class="switch"><input type="checkbox" ${id ? `id="${id}"` : ""} class="${cls}" ${data} ${on ? "checked" : ""}><span class="sr">be/ki</span></label>`;
@@ -145,8 +144,10 @@ export async function render(root) {
           <div class="row"><button type="button" class="btn grow" id="emcancel">Mégsem</button><button class="btn primary grow">Mentés</button></div>
         </form>`, true)}
       ${row("Beállítások mentése", "Lementheted fájlba, és másik eszközön visszatöltheted.", `<div class="row wrap"><button class="btn" id="exp">Exportálás</button><label class="btn" style="cursor:pointer">Importálás<input type="file" id="imp" accept="application/json" hidden></label></div>`)}
-      ${row("Belépett eszközök", "A jelszavad nincs eltárolva. A szerver titkosítva tárol egy megújító tokent, ezért nem kell újra belépned.", `<div class="list">${sessions.map((s) => `<div class="item"><div class="grow small"><b>${s.current ? "Ez az eszköz" : "Másik eszköz"}</b><div class="muted" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.ua || "")}</div></div><span class="small muted">${ago(s.lastSeen)}</span></div>`).join("")}</div>`, true)}
-      ${row("Kilépés", "", `<div class="row wrap"><button class="btn" id="lo">Kilépés</button><button class="btn" id="loa">Kilépés mindenhonnan</button></div>`)}
+      ${row("Ez az eszköz", `A belépésed${u.inst === "demo" ? "" : u.needsLogin ? " (e-mail címmel, KRÉTA-kapcsolat nélkül)" : " és a KRÉTA tokenje"} titkosítva ennek a böngészőnek a sütijében van, a szerveren nem tároljuk. A jelszavadat sehol nem tároljuk. A lejáratot belépéskor választod.`,
+        `<div class="small">Belépve: <b>${ss.created ? when(ss.created) : "–"}</b><br>Lejár: <b>${ss.expires ? when(ss.expires) : "soha"}</b></div>`)}
+      ${row("Kilépés", "Mindenhonnan: minden eszközön kiléptet, pl. ha egy közös gépen bent maradtál.", `<div class="row wrap"><button class="btn" id="lo">Kilépés</button><button class="btn" id="loa">Kilépés mindenhonnan</button></div>`)}
+      ${row("Általános Szerződési Feltételek", "", `<a class="btn" href="/aszf" target="_blank" rel="noopener">Megnyitás</a>`)}
       ${row("Fiók törlése", "Törli a fiókodat és minden mentett adatot (beállítások, nevek, saját házik). Nem vonható vissza.", `<button class="btn danger" id="del">Fiók és adatok törlése</button>`)}`)}
 
     ${sec("dev", `<h3>Fejlesztői eszközök</h3>

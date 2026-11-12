@@ -1,4 +1,7 @@
-"""SQLite réteg: felhasználók, munkamenetek, gyorsítótár, beállítások, belépési próbák, oldalbeállítások."""
+"""SQLite réteg: felhasználók, gyorsítótár, beállítások, belépési próbák, oldalbeállítások.
+
+A munkamenetek és a KRÉTA-tokenek nincsenek itt: titkosítva a böngésző sütijében vannak (security.py).
+"""
 import sqlite3
 import threading
 
@@ -13,25 +16,14 @@ CREATE TABLE IF NOT EXISTS users (
     inst        TEXT NOT NULL,
     username    TEXT,
     name        TEXT,
-    refresh_enc TEXT,                      -- titkosítva (Fernet)
-    access_enc  TEXT,
-    access_exp  REAL DEFAULT 0,
-    needs_login INTEGER DEFAULT 0,
     created     REAL NOT NULL,
     last_login  REAL,
     email       TEXT,                      -- e-mailes belépés (kisbetűsen), visszaigazolás nélkül
     pw_hash     TEXT,                      -- az e-mailes belépés jelszava (scrypt)
-    admin       INTEGER DEFAULT 0          -- fejlesztő: fejlesztői címet a fejlesztői kóddal csatolt
+    admin       INTEGER DEFAULT 0,         -- fejlesztő: fejlesztői címet a fejlesztői kóddal csatolt
+    gen         INTEGER NOT NULL DEFAULT 0, -- „kilépés mindenhonnan” számláló: a régebbi sütik érvénytelenek
+    last_seen   REAL                       -- utolsó aktivitás (a fejlesztői statisztikához)
 );
-CREATE TABLE IF NOT EXISTS sessions (
-    sid_hash  TEXT PRIMARY KEY,
-    user_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    created   REAL NOT NULL,
-    last_seen REAL NOT NULL,
-    expires   REAL NOT NULL,
-    ua        TEXT
-);
-CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
 CREATE TABLE IF NOT EXISTS cache (
     user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     ckey       TEXT NOT NULL,
@@ -61,7 +53,11 @@ MIGRATIONS = [
     ("users", "email", "TEXT"),
     ("users", "pw_hash", "TEXT"),
     ("users", "admin", "INTEGER DEFAULT 0"),
+    ("users", "gen", "INTEGER NOT NULL DEFAULT 0"),
+    ("users", "last_seen", "REAL"),
 ]
+# a belépési adatok régen az adatbázisban voltak, most a sütiben: ezeket egyszer, véglegesen töröljük
+LEGACY_COLUMNS = ("refresh_enc", "access_enc", "access_exp", "needs_login")
 
 
 def conn():
@@ -83,6 +79,15 @@ def init():
             c.execute(f"ALTER TABLE {table} ADD COLUMN {col} {typ}")
     c.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email)")
     c.commit()
+    cols = {r["name"] for r in c.execute("PRAGMA table_info(users)")}
+    legacy = [col for col in LEGACY_COLUMNS if col in cols]
+    if legacy or c.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='sessions'").fetchone():
+        c.execute("DROP TABLE IF EXISTS sessions")
+        for col in legacy:
+            c.execute(f"ALTER TABLE users DROP COLUMN {col}")
+        c.commit()
+        c.execute("VACUUM")  # a törölt tokenek a fájl szabad lapjain se maradjanak meg ...
+        c.execute("PRAGMA wal_checkpoint(TRUNCATE)")  # ... és a WAL-ban se
 
 
 def all_(sql, args=()):

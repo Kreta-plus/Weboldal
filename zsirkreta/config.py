@@ -71,7 +71,10 @@ COOLDOWN_429 = int(os.environ.get("KP_COOLDOWN", 300))       # 429/403 után enn
 STALE_MAX = 7 * 24 * 3600                                  # hiba esetén ennél régebbi adatot már nem mutatunk
 
 # --- Munkamenet / belépés ---
-SESSION_DAYS = 365
+# A belépés minden adata (a KRÉTA-tokenek is) titkosítva a böngésző sütijében van, a szerveren nincs tárolva.
+# Belépéskor választható, mennyi idő után járjon le (másodperc; 0 = soha).
+SESSION_CHOICES = {"1h": 3600, "1d": 86400, "7d": 7 * 86400, "30d": 30 * 86400, "365d": 365 * 86400, "never": 0}
+SESSION_DEFAULT = "365d"
 LOGIN_MAX_ATTEMPTS = 5       # ennyi próbálkozás ...
 LOGIN_WINDOW = 10 * 60       # ... ennyi idő alatt, IP-nként és fiókonként
 
