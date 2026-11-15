@@ -53,6 +53,36 @@ def check_pw(pw, stored):
         return False
 
 
+# ---------- e-mailes belépés: a KRÉTA megújító token a felhasználó jelszavával titkosítva ----------
+# A kulcs a jelszóból származik (scrypt, külön sóval), a szerver nem tárolja: csak a belépett felhasználó sütijében
+# van meg (wk), hogy token-megújításkor az adatbázisban lévő példányt is frissíteni lehessen.
+def wrap_key(pw, salt):
+    return base64.urlsafe_b64encode(hashlib.scrypt(pw.encode(), salt=salt, **_SCRYPT)).decode()
+
+
+def wrap(rt, key):
+    return Fernet(key.encode()).encrypt(rt.encode()).decode()
+
+
+def unwrap(blob, key):
+    try:
+        return Fernet(key.encode()).decrypt(blob.encode()).decode()
+    except (InvalidToken, ValueError):
+        return None
+
+
+def store_wrapped(uid, rt, key, salt_b64):
+    db.run("UPDATE users SET rt_wrap=?, wrap_salt=? WHERE id=?", (wrap(rt, key), salt_b64, uid))
+
+
+def new_wrap(uid, pw, rt):
+    """Új kulcs a jelszóból (új sóval) és a token titkosított mentése. Visszaad: a kulcs (a sütibe kerül)."""
+    salt = os.urandom(16)
+    key = wrap_key(pw, salt)
+    store_wrapped(uid, rt, key, base64.b64encode(salt).decode())
+    return key
+
+
 # nem létező címnél is lefut egy ellenőrzés, hogy a válaszidő ne árulja el, van-e ilyen fiók
 DUMMY_HASH = hash_pw(secrets.token_hex(8))
 

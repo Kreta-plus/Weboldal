@@ -2,7 +2,9 @@
 
 A munkamenet és a KRÉTA-tokenek a titkosított sütiben vannak (security.py); a lejáratot belépéskor a felhasználó választja.
 """
+import base64
 import hmac
+import os
 import re
 import secrets
 import sqlite3
@@ -14,7 +16,7 @@ from flask import Blueprint, g, jsonify, make_response, request
 
 from .. import config as C
 from .. import db, demo, kreta, security, site
-from ..config import ADMIN_EMAILS, DEV_CODE
+from ..config import ADMIN_EMAILS, DEV_CODE, DEV_CODE_OFF
 
 bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
@@ -29,8 +31,16 @@ def _terms(d):
 
 
 def _start(uid, d, tokens=None, **extra):
-    """Belépés: a süti a kérés végén megy ki (security.save_session), a választott lejárattal."""
-    security.begin_session(uid, d.get("keep"), tokens)
+    """Belépés: a süti a kérés végén megy ki (security.save_session), a választott lejárattal.
+    KRÉTA-belépésnél, ha ezen az eszközön ugyanez a fiók e-mailes kulccsal (wk) volt belépve, a kulcs megmarad,
+    és az új megújító token az adatbázisban is frissül, így az e-mailes belépés újra betölti a KRÉTA-adatokat."""
+    prev = security.current() if security.load_session() else None
+    sess = security.begin_session(uid, d.get("keep"), tokens)
+    if tokens and prev and prev.get("u") == uid and prev.get("wk") and sess.get("rt"):
+        row = db.one("SELECT wrap_salt FROM users WHERE id=? AND pw_hash IS NOT NULL", (uid,))
+        if row and row["wrap_salt"]:
+            sess["wk"] = prev["wk"]
+            security.store_wrapped(uid, sess["rt"], prev["wk"], row["wrap_salt"])
     return jsonify(ok=True, **extra)
 
 
@@ -118,12 +128,25 @@ def email_login():
     if security.too_many_attempts(*keys):
         return jsonify(error="Túl sok próbálkozás, várj pár percet", code="throttle"), 429
     security.record_attempt(*keys)
-    row = db.one("SELECT id, email, pw_hash, admin FROM users WHERE email=?", (email,))
+    row = db.one("SELECT id, email, pw_hash, admin, rt_wrap, wrap_salt FROM users WHERE email=?", (email,))
     if not security.check_pw(pw, row["pw_hash"] if row else security.DUMMY_HASH) or not row:
         return jsonify(error="Hibás e-mail cím vagy jelszó"), 401
     security.clear_attempts(*keys)
     db.run("UPDATE users SET last_login=? WHERE id=?", (time.time(), row["id"]))
-    return _start(row["id"], d, admin=security.is_admin(row))
+    sess = security.begin_session(row["id"], d.get("keep"))
+    kreta_ok = False
+    if row["wrap_salt"]:
+        key = security.wrap_key(pw, base64.b64decode(row["wrap_salt"]))
+    else:  # még nincs mentett token (pl. a funkció előtt csatolt e-mail): a kulcs már most elkészül
+        salt = os.urandom(16)
+        key = security.wrap_key(pw, salt)
+        db.run("UPDATE users SET wrap_salt=?, rt_wrap=NULL WHERE id=?", (base64.b64encode(salt).decode(), row["id"]))
+    sess["wk"] = key  # így egy KRÉTA-belépés ezen az eszközön (a sávból) elmenti a tokent, és utána e-maillel is működik
+    rt = security.unwrap(row["rt_wrap"], key) if row["rt_wrap"] else None
+    if rt:  # a hozzáférési tokent az első adatkérés kéri le ezzel a megújító tokennel
+        sess["rt"] = rt
+        kreta_ok = True
+    return jsonify(ok=True, admin=security.is_admin(row), kreta=kreta_ok)
 
 
 @bp.post("/email")
@@ -139,7 +162,9 @@ def email_set():
     if db.one("SELECT 1 FROM users WHERE email=? AND id<>?", (email, me["id"])):
         return jsonify(error="Ez az e-mail cím már egy másik fiókhoz tartozik"), 409
     admin = me["admin"] if email == me["email"] else 0  # a már csatolt saját címnél marad, ami volt
-    if email in ADMIN_EMAILS and not admin:
+    if email in ADMIN_EMAILS and not admin and DEV_CODE_OFF:
+        admin = 1  # helyi teszt: a kód ellenőrzése ki van kapcsolva (KP_DEV_CODE_OFF=1)
+    elif email in ADMIN_EMAILS and not admin:
         # fejlesztői cím: visszaigazolás helyett a szerver fejlesztői kódja kell, különben bárki fejlesztő lehetne
         if not DEV_CODE:
             return jsonify(error="Fejlesztői címhez a szerveren be kell állítani a KP_DEV_CODE kódot", code="devcode"), 403
@@ -152,16 +177,25 @@ def email_set():
             return jsonify(error="Hibás fejlesztői kód" if code else "Ez fejlesztői cím: add meg a fejlesztői kódot", code="devcode"), 403
         admin = 1
     try:
-        db.run("UPDATE users SET email=?, pw_hash=?, admin=? WHERE id=?", (email, security.hash_pw(pw), admin, me["id"]))
+        # a régi jelszóval titkosított token az új jelszóval már nem bontható ki: törlődik, és ha van token, újra mentjük
+        db.run("UPDATE users SET email=?, pw_hash=?, admin=?, rt_wrap=NULL, wrap_salt=NULL WHERE id=?", (email, security.hash_pw(pw), admin, me["id"]))
     except sqlite3.IntegrityError:  # közben valaki más csatolta ugyanezt
         return jsonify(error="Ez az e-mail cím már egy másik fiókhoz tartozik"), 409
-    return jsonify(ok=True, email=email, admin=security.is_admin({"email": email, "admin": admin}))
+    sess = security.current()
+    kreta_ok = bool(sess and sess.get("rt"))
+    if kreta_ok:
+        sess["wk"] = security.new_wrap(me["id"], pw, sess["rt"])
+        security.session_changed()
+    return jsonify(ok=True, email=email, admin=security.is_admin({"email": email, "admin": admin}), kreta=kreta_ok)
 
 
 @bp.post("/email/remove")
 @security.login_required
 def email_remove():
-    db.run("UPDATE users SET email=NULL, pw_hash=NULL, admin=0 WHERE id=?", (g.user["id"],))
+    db.run("UPDATE users SET email=NULL, pw_hash=NULL, admin=0, rt_wrap=NULL, wrap_salt=NULL WHERE id=?", (g.user["id"],))
+    sess = security.current()
+    if sess and sess.pop("wk", None):
+        security.session_changed()
     return jsonify(ok=True)
 
 

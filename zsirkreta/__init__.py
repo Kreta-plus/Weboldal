@@ -19,6 +19,7 @@ def create_app():
     from .blueprints.data import bp as data_bp
     from .blueprints.feedback import bp as feedback_bp
     from .blueprints.prefs import bp as prefs_bp
+    from .blueprints.shared import bp as shared_bp
     from .blueprints.site import bp as site_bp
 
     app.register_blueprint(auth_bp)
@@ -26,6 +27,7 @@ def create_app():
     app.register_blueprint(data_bp)
     app.register_blueprint(feedback_bp)
     app.register_blueprint(prefs_bp)
+    app.register_blueprint(shared_bp)
     app.register_blueprint(site_bp)
 
     # karbantartás közben is működik: belépés, a nyilvános oldalbeállítások és az állapotjelző

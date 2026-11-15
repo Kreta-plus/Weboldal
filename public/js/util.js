@@ -111,8 +111,14 @@ const NOT_LESSON = /(munkasz[üu]net|[őo]szi sz[üu]net|t[ée]li sz[üu]net|tav
 export function normLessons(raw) {
   return (Array.isArray(raw) ? raw : []).filter((l) => !NOT_LESSON.test([l.Tantargy?.Nev, l.Nev, l.Tema, l.Tipus?.Nev].filter(Boolean).join(" "))).map((l) => ({
     id: l.Uid, start: new Date(l.KezdetIdopont), end: new Date(l.VegIdopont), subject: l.Tantargy?.Nev || l.Nev || "Óra",
-    name: l.Nev || "", teacher: l.TanarNeve || "", sub: l.HelyettesitoTanarNeve || "", room: l.TeremNeve || (typeof l.Tanterem === "string" ? l.Tanterem : l.Tanterem?.Nev) || l.Terem || "", nr: l.Oraszam,
+    // a helyettesítő tanár a KRÉTA válaszában HelyettesTanarNeve (a régi kliensekben HelyettesitoTanarNeve)
+    name: l.Nev || "", teacher: l.TanarNeve || "", sub: l.HelyettesTanarNeve || l.HelyettesitoTanarNeve || "", room: l.TeremNeve || (typeof l.Tanterem === "string" ? l.Tanterem : l.Tanterem?.Nev) || l.Terem || "", nr: l.Oraszam,
     off: /elmaradt/i.test(l.Allapot?.Nev || ""), topic: l.Tema || "", test: !!l.BejelentettSzamonkeresUid, hw: !!l.HaziFeladatUid,
+    // a részletes nézethez (órára kattintva)
+    testId: l.BejelentettSzamonkeresUid ? String(l.BejelentettSzamonkeresUid) : "", hwId: l.HaziFeladatUid ? String(l.HaziFeladatUid) : "",
+    group: l.OsztalyCsoport?.Nev || "", state: l.Allapot?.Leiras || l.Allapot?.Nev || "", type: l.Tipus?.Nev || "", typeText: l.Tipus?.Leiras || "",
+    presence: l.TanuloJelenlet?.Nev || "", presenceText: l.TanuloJelenlet?.Leiras || "", yearNr: l.OraEvesSorszama || null,
+    digital: !!l.IsDigitalisOra, files: Array.isArray(l.Csatolmanyok) ? l.Csatolmanyok.length : 0,
   })).filter((l) => !isNaN(l.start)).sort((a, b) => a.start - b.start);
 }
 export function normAbs(raw) {

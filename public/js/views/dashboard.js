@@ -1,7 +1,8 @@
-import { S as ST, subjName, teacherName, shownName, grades, numericGrades, lessons, homework, tests, absences, avgOf, bySubject, loadWeek, fillTestLessons } from "../state.js";
+import { S as ST, profile, subjName, teacherName, shownName, grades, numericGrades, lessons, homework, tests, absences, avgOf, bySubject, loadWeek, fillTestLessons } from "../state.js";
 import { esc, linkify, hwText, f2, gcls, fmtDate, fmtTime, relDay, d0, sameDay, subjColor, MONTHS, normLessons, mondayOf, addDays, iso } from "../util.js";
 import { tomorrowQuip } from "../funny.js";
 import { openStory } from "../story.js";
+import { openLesson } from "../lesson.js";
 
 const quipCache = {}; // naponta/óraszerkezetenként egy szöveg, hogy újrarajzoláskor ne változzon
 import { line, bars } from "../charts.js";
@@ -55,7 +56,7 @@ export function render(root) {
   const cards = [];
   if (widgets.has("next")) cards.push(`<div class="card"><h3>Mai órák <small>${todayL.length ? todayL.length + " óra" : ""}</small></h3>
     ${todayL.length ? `<div class="list">${todayL.map((l) => `
-      <div class="item" style="${l.end < now ? "opacity:.5" : ""}${nextL && nextL.id === l.id ? ";border-color:var(--accent)" : ""}">
+      <div class="item les-item" data-les="${esc(String(l.id))}" role="button" tabindex="0" title="Részletek" style="${l.end < now ? "opacity:.5" : ""}${nextL && nextL.id === l.id ? ";border-color:var(--accent)" : ""}">
         <span class="dot" style="background:${subjColor(l.subject)}"></span>
         <div class="grow"><b class="${l.off ? "muted" : ""}" style="${l.off ? "text-decoration:line-through" : ""}">${esc(subjName(l.subject))}</b>
           <div class="small muted">${fmtTime(l.start)}–${fmtTime(l.end)} · ${esc(l.room || "—")} · ${esc(teacherName(l.sub || l.teacher))}${l.sub ? " (helyettes)" : ""}</div></div>
@@ -89,12 +90,19 @@ export function render(root) {
     cards.push(`<div class="card"><h3>Hiányzások tantárgyanként</h3>${top.length ? bars({ horizontal: true, items: top }) : `<div class="empty">Nincs hiányzás 👏</div>`}</div>`);
   }
 
+  const pr = profile();
+  const who = [pr.school && `🏫 ${esc(pr.school)}`, pr.name && `👤 ${esc(pr.name)}`, pr.cls && `🏷️ ${esc(pr.cls)}`,
+    pr.groups.length && `csoport: ${pr.groups.slice(0, 3).map(esc).join(", ")}${pr.groups.length > 3 ? ` +${pr.groups.length - 3}` : ""}`].filter(Boolean);
   root.innerHTML = `
     <div class="topbar"><div><h1>${hello}, ${esc(shownName())}! ${esc(ST.prefs.emoji || "")}</h1>
-      <div class="sub">${new Intl.DateTimeFormat("hu-HU", { weekday: "long", month: "long", day: "numeric" }).format(now)}${nextL ? ` · következő óra: <b>${esc(subjName(nextL.subject))}</b> ${fmtTime(nextL.start)}` : ""}</div></div><button class="btn" id="story">📸 Story kép</button></div>
+      <div class="sub">${new Intl.DateTimeFormat("hu-HU", { weekday: "long", month: "long", day: "numeric" }).format(now)}${nextL ? ` · következő óra: <b>${esc(subjName(nextL.subject))}</b> ${fmtTime(nextL.start)}` : ""}</div>
+      ${who.length ? `<div class="who">${who.map((w) => `<span>${w}</span>`).join("")}</div>` : ""}</div><button class="btn" id="story">📸 Story kép</button></div>
     <div id="quip"></div>
     <div class="grid" style="gap:var(--gap)">${kpis}<div class="grid g3">${cards.join("") || `<div class="card empty span2">Minden widget ki van kapcsolva. Beállítások → Kezdőlap.</div>`}</div></div>`;
   root.querySelector("#story").onclick = openStory;
+  // a mai órákra kattintva (vagy Enterrel) a részletek ablakban nyílnak
+  const pick = (e) => { const it = e.target.closest("[data-les]"); if (it) openLesson(todayL.find((l) => String(l.id) === it.dataset.les)); };
+  root.querySelectorAll("[data-les]").forEach((it) => { it.onclick = pick; it.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(e); } }; });
   if (ST.prefs.funnyQuips !== false) showQuip(root.querySelector("#quip"), today);
 }
 

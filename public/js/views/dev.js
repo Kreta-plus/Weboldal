@@ -11,6 +11,8 @@ const state = (on, yes = "működik", no = "nincs beállítva") => `<span class=
 // datetime-local mező ↔ Unix-idő (a böngésző helyi idejében)
 const toInput = (ts) => (ts ? `${iso(new Date(ts * 1000))}T${fmtTime(new Date(ts * 1000))}` : "");
 const fromInput = (v) => (v ? Math.round(new Date(v).getTime() / 1000) : null);
+// a Vége melletti legördülő: a kezdettől (ha nincs megadva, mosttól) ennyi perc múlva lesz újra elérhető
+const DURATIONS = [[15, "15 perc"], [30, "30 perc"], [60, "1 óra"], [90, "1,5 óra"], [120, "2 óra"], [180, "3 óra"], [360, "6 óra"], [720, "12 óra"], [1440, "1 nap"], [2880, "2 nap"]];
 
 function maintStatus(ms, s) {
   const now = Date.now() / 1000;
@@ -45,16 +47,22 @@ export async function render(root) {
       ${row("Karbantartás most", "Azonnal elindul; ha megadod a végét, magától le is áll. Közben csak a fejlesztők használhatják az oldalt.", toggle("mt", s.maintenance && ms !== "ended"))}
       ${row("Mettől meddig", "A kezdetkor magától indul, a végén magától leáll. Előtte a diákok értesítést látnak az oldal tetején és a belépőoldalon, közben pedig kiírjuk nekik az időpontot és a hátralévő időt.",
         `<div class="mt-when">
-          <label class="f">Kezdete<span class="mt-in"><input class="input" type="datetime-local" id="mtf" value="${toInput(s.maintenanceFrom)}"><button type="button" class="btn sm" data-clear="mtf" aria-label="Kezdet törlése">✕</button></span></label>
-          <label class="f">Vége<span class="mt-in"><input class="input" type="datetime-local" id="mtu" value="${toInput(s.maintenanceUntil)}"><button type="button" class="btn sm" data-clear="mtu" aria-label="Vég törlése">✕</button></span></label>
+          <label class="f">Kezdete<span class="mt-in"><input class="input" type="datetime-local" id="mtf" value="${toInput(s.maintenanceFrom)}"><button type="button" class="btn sm" data-clear="mtf" aria-label="Kezdet törlése">✕</button></span>
+            <button type="button" class="btn sm mt-now" data-now="mtf">🕒 Most</button></label>
+          <label class="f">Vége<span class="mt-in"><input class="input" type="datetime-local" id="mtu" value="${toInput(s.maintenanceUntil)}"><button type="button" class="btn sm" data-clear="mtu" aria-label="Vég törlése">✕</button></span>
+            <select class="input mt-dur" id="mtdur" aria-label="Időtartam: ennyi idő múlva lesz újra elérhető">
+              <option value="">⏱️ Időtartam…</option>${DURATIONS.map(([m, l]) => `<option value="${m}">${l} múlva</option>`).join("")}
+            </select></label>
         </div>`, true)}
-      ${row("Üzenet a diákoknak", "", `<input class="input" id="mtt" maxlength="300" value="${esc(s.maintenanceText)}">`, true)}
+      ${row("Üzenet a diákoknak", "", `<textarea class="input dev-ta" id="mtt" maxlength="300" rows="3">${esc(s.maintenanceText)}</textarea>`, true)}
       ${ms === "active" || ms === "scheduled" ? `<div class="row wrap" style="margin-top:12px"><button class="btn danger" id="mtend">${ms === "active" ? "Karbantartás befejezése most" : "Ütemezés törlése"}</button></div>` : ""}
     </section>
     <section class="card">
       <h3>⚙️ Funkciók</h3>
       ${row("Teszt fiók", sys.demoAllowed ? "„Kipróbálom teszt fiókkal” a belépőoldalon." : "A szerveren ki van kapcsolva (KP_DEMO=0), innen nem kapcsolható be.", toggle("demo", s.demoEnabled && sys.demoAllowed, !sys.demoAllowed))}
       ${row("Üzenetküldés", "Hibabejelentés, ötlet és üzenet a csapatnak (GlitchTip és Discord).", toggle("fb", s.feedbackEnabled))}
+      ${row("Teszt fiók: osztály, csoport, iskola", "A teszt fiók a Beállításokban kézzel válthat osztályt, csoportot és iskolát, így kipróbálható a közös házi/dolgozat felírás. ⚠️ Bekapcsolva bármelyik teszt fiók bármelyik iskola osztályának közös bejegyzéseit láthatja (a felírók nevével), ezért élesben csak rövid tesztre kapcsold be. Fejlesztői fióknak mindig elérhető.", toggle("tg", s.testGroupsEnabled))}
+      ${row("AI prompt másolása", "„🤖 AI prompt másolása” gomb a házi feladatoknál: a feladatból kész promptot tesz a vágólapra.", toggle("ai", s.aiPromptEnabled))}
       ${row("Discord-meghívó", "A Kapcsolatok oldalon ez a link látszik.", `<input class="input" id="dc" maxlength="120" value="${esc(s.discordInvite)}" placeholder="https://discord.gg/…">`, true)}
     </section>
     <section class="card">
@@ -66,7 +74,7 @@ export async function render(root) {
         <div class="item"><div class="grow">Környezet</div><b>${esc(sys.env)}</b></div>
         <div class="item"><div class="grow">GlitchTip hibakövetés</div>${state(sys.glitchtip)}</div>
         <div class="item"><div class="grow">Discord webhook</div>${state(sys.discordWebhook)}</div>
-        <div class="item"><div class="grow">Fejlesztői kód (KP_DEV_CODE)</div>${state(sys.devCode, "beállítva")}</div>
+        <div class="item"><div class="grow">Fejlesztői kód (KP_DEV_CODE)</div>${sys.devCodeOff ? `<span class="chip bad">kikapcsolva (KP_DEV_CODE_OFF=1, csak tesztre)</span>` : state(sys.devCode, "beállítva")}</div>
       </div>
     </section>
   </div>
@@ -77,7 +85,7 @@ export async function render(root) {
   const collect = () => ({
     announcement: $("#an").value.trim(), announcementLevel: level,
     maintenance: $("#mt").checked, maintenanceFrom: fromInput($("#mtf").value), maintenanceUntil: fromInput($("#mtu").value), maintenanceText: $("#mtt").value.trim(),
-    demoEnabled: sys.demoAllowed ? $("#demo").checked : s.demoEnabled, feedbackEnabled: $("#fb").checked, discordInvite: $("#dc").value.trim(),
+    demoEnabled: sys.demoAllowed ? $("#demo").checked : s.demoEnabled, feedbackEnabled: $("#fb").checked, aiPromptEnabled: $("#ai").checked, testGroupsEnabled: $("#tg").checked, discordInvite: $("#dc").value.trim(),
   });
   const initial = collect(); // ehhez képest van mentetlen változás (lejárt karbantartásnál a kapcsoló már kikapcsolva látszik)
   const changed = () => JSON.stringify(collect()) !== JSON.stringify(initial);
@@ -96,6 +104,16 @@ export async function render(root) {
   }));
   root.querySelectorAll("textarea, input").forEach((el) => { el.addEventListener("input", mark); el.addEventListener("change", mark); });
   root.querySelectorAll("[data-clear]").forEach((b) => (b.onclick = () => { $(`#${b.dataset.clear}`).value = ""; mark(); }));
+  $("#mtdur").onchange = (e) => {
+    const min = +e.target.value;
+    if (!min) return;
+    const from = fromInput($("#mtf").value), base = from && from * 1000 > Date.now() ? from : Date.now() / 1000;
+    $("#mtu").value = toInput(base + min * 60);
+    e.target.value = ""; // a legördülő visszaáll, a Vége mezőben marad az eredmény
+    mark();
+  };
+  // „Most”: a kezdet a mostani időpont (percre kerekítve, a böngésző helyi idejében)
+  root.querySelectorAll("[data-now]").forEach((b) => (b.onclick = (e) => { e.preventDefault(); $(`#${b.dataset.now}`).value = toInput(Date.now() / 1000); mark(); }));
   $("#mtend")?.addEventListener("click", async () => {
     try { await saveSite({ maintenance: false, maintenanceFrom: null, maintenanceUntil: null }, ms === "active" ? "Karbantartás befejezve" : "Ütemezés törölve"); } catch (e) { toast(e.message); }
   });

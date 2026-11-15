@@ -9,6 +9,7 @@ export const S = {
   errors: {},
   weekCache: {},  // órarend hetek
   site: {},       // az egész oldal beállításai (közlemény, karbantartás, …), a fejlesztői oldalon szerkeszthetők
+  shared: { items: [], membership: null }, // osztálynak / csoportnak közösen felírt házik és dolgozatok, és a tagság
 };
 
 // Színtémák: [név, sötét előnézet háttér + kártya, világos előnézet háttér + kártya, hozzá illő kiemelő szín].
@@ -41,15 +42,35 @@ export const numericGrades = () => grades().filter((g) => g.value != null && !g.
 export const termGrades = () => grades().filter((g) => g.isTerm);
 export const lessons = () => fillTestLessons(U.normLessons(S.raw.orarend?.data), U.mondayOf(new Date()));
 export const absences = () => U.normAbs(S.raw.mulasztasok?.data);
+// Iskola, név, osztály, csoportok a kezdőlap fejlécéhez. Az adatlapon nincs osztály: az órarend OsztalyCsoport
+// neveiből jön (a leggyakoribb „11.I”-szerű név az osztály, a többi a csoport; az eseti, egyszeri csoport kimarad).
+const CLASS_RE = /^\d{1,2}\.\s?[A-Za-zÁ-Űá-ű]{1,3}$/;
+export function profile() {
+  const t = S.raw.tanulo?.data || {};
+  const cnt = new Map();
+  (S.raw.orarend?.data || []).forEach((l) => { const n = l.OsztalyCsoport?.Nev?.trim(); if (n) cnt.set(n, (cnt.get(n) || 0) + 1); });
+  const names = [...cnt].sort((a, b) => b[1] - a[1]);
+  const cls = names.find(([n]) => CLASS_RE.test(n))?.[0] || "";
+  let groups = names.filter(([n]) => n !== cls);
+  if (groups.some(([, c]) => c > 1)) groups = groups.filter(([, c]) => c > 1);
+  const m = S.shared.membership; // a szerver ugyanígy számolja (teszt fióknál kézzel is megadható): ha megvan, az számít
+  if (m) return { school: t.Intezmeny?.TeljesNev || t.IntezmenyNev || "", name: t.Nev || "", cls: m.cls || "", groups: m.groups || [] };
+  return { school: t.Intezmeny?.TeljesNev || t.IntezmenyNev || "", name: t.Nev || "", cls, groups: groups.map(([n]) => n) };
+}
 // A KRÉTA-s adatokhoz hozzávesszük a Tervezőben felvett saját házikat és dolgozatokat (own: true).
 const day = (s) => new Date(s + "T00:00");
+// a közösen felírtak: shared = {scope, target, author, mine, canDelete, sid}
+const sharedMeta = (i) => ({ scope: i.scope, target: i.target, author: i.author, mine: i.mine, canDelete: i.canDelete, sid: i.id });
+export const sharedLabel = (sh) => (sh.scope === "class" ? `osztály: ${sh.target}` : `csoport: ${sh.target}`);
 export const homework = () => [
   ...U.normHw(S.raw.hazi?.data),
   ...(S.prefs.myHomework || []).map((h) => ({ id: "own_" + h.id, subject: h.subject, teacher: "", text: h.text, given: day(h.date), due: day(h.date), done: !!h.done, own: true })),
+  ...S.shared.items.filter((i) => i.kind === "hw").map((i) => ({ id: "sh_" + i.id, subject: i.subject, teacher: "", text: i.text, given: new Date(i.created * 1000), due: day(i.date), done: false, shared: sharedMeta(i) })),
 ].sort((a, b) => a.due - b.due);
 export const tests = () => [
   ...U.normTests(S.raw.szamonkeres?.data),
   ...(S.prefs.myTests || []).map((t) => ({ id: "own_" + t.id, subject: t.subject, teacher: "", topic: t.topic, kind: "saját dolgozat", date: day(t.date), own: true })),
+  ...S.shared.items.filter((i) => i.kind === "test").map((i) => ({ id: "sh_" + i.id, subject: i.subject, teacher: "", topic: i.text, kind: "felírt dolgozat", date: day(i.date), shared: sharedMeta(i) })),
 ].sort((a, b) => a.date - b.date);
 export const notes = () => U.normNotes(S.raw.feljegyzesek?.data);
 
@@ -156,11 +177,17 @@ export async function loadPrefs() {
 }
 
 // ---------- adatok ----------
-export const LABELS = { tanulo: "adatlap", jegyek: "jegyek", orarend: "órarend", mulasztasok: "hiányzások", hazi: "házi", szamonkeres: "számonkérések", feljegyzesek: "feljegyzések" };
+export const LABELS = { shared: "közös házi/dolgozat", tanulo: "adatlap", jegyek: "jegyek", orarend: "órarend", mulasztasok: "hiányzások", hazi: "házi", szamonkeres: "számonkérések", feljegyzesek: "feljegyzések" };
 
 // r.changed: azok az adatfajták, amelyek tartalma tényleg megváltozott az előző betöltéshez képest (első betöltéskor üres)
+export async function loadShared() {
+  try { S.shared = await get("/api/shared"); } catch {}
+  return S.shared;
+}
+
 export async function loadBundle(force = false) {
-  const r = await get("/api/data/bundle" + (force ? "?force=1" : ""));
+  const before = JSON.stringify(S.shared.items);
+  const [r] = await Promise.all([get("/api/data/bundle" + (force ? "?force=1" : "")), loadShared()]);
   const first = !Object.keys(S.raw).length;
   S.errors = {}; r.changed = [];
   for (const [k, v] of Object.entries(r.items)) {
@@ -168,6 +195,7 @@ export async function loadBundle(force = false) {
     if (!first && JSON.stringify(S.raw[k]?.data) !== JSON.stringify(v.data)) r.changed.push(k);
     S.raw[k] = v;
   }
+  if (!first && JSON.stringify(S.shared.items) !== before) r.changed.push("shared");
   return r;
 }
 

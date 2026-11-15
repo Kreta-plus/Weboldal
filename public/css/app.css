@@ -177,6 +177,9 @@ a { color: var(--accent-strong); text-underline-offset: 3px; }
 .topbar { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; margin-bottom: 24px; flex-wrap: wrap; }
 .topbar h1 { font-size: 2.4rem; letter-spacing: -.02em; }
 .topbar .sub { color: var(--muted); margin-top: 6px; max-width: 70ch; }
+/* kezdőlap: iskola, név, osztály, csoportok kicsiben */
+.topbar .who { display: flex; flex-wrap: wrap; gap: 2px 0; margin-top: 4px; font-size: .8125rem; color: var(--muted); }
+.topbar .who span:not(:last-child)::after { content: "·"; margin: 0 8px; opacity: .6; }
 .topbar .sub b { color: var(--text); }
 
 /* ---------- panelek: sík felületek, a sugár a hierarchiát követi ---------- */
@@ -286,6 +289,24 @@ html[data-theme="light"] .les { box-shadow: inset 0 0 0 1px var(--border); }
 .les.now { box-shadow: 0 0 0 2px var(--accent); }
 .les b { font-family: var(--font-display); font-weight: 600; font-size: .9375rem; }
 .les .t { font-size: .75rem; color: var(--muted); }
+/* kattintható óra: a részletek ablakban nyílnak */
+.les-btn { width: 100%; text-align: left; font: inherit; color: inherit; border-top: 0; border-right: 0; border-bottom: 0; cursor: pointer; transition: transform .12s, background .12s; }
+.les-btn:hover { background: var(--surface2); }
+.les-item { cursor: pointer; }
+.les-item:hover { border-color: var(--border); background: var(--surface2); }
+.les-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.les-btn:active { transform: scale(.98); }
+.les .les-sub { color: var(--text); font-weight: 700; }
+.les .les-topic { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-style: italic; }
+.lesson-modal { width: min(480px, 100%); max-height: calc(100vh - 32px); overflow: auto; border-top: 6px solid var(--c, var(--accent)); }
+.lm-head { display: flex; align-items: flex-start; gap: 12px; }
+.lm-head h3 { margin: 0 0 4px; }
+.lm-rows { display: grid; gap: 2px; }
+.lm-row { display: grid; grid-template-columns: 130px 1fr; gap: 12px; padding: 7px 10px; border-radius: var(--r-inner); background: var(--surface2); font-size: .9rem; }
+.lm-row > span:last-child { overflow-wrap: anywhere; }
+.lm-box { display: grid; gap: 4px; padding: 10px 12px; border-radius: var(--r-inner); background: var(--surface2); font-size: .9rem; }
+.lm-box.warn { background: var(--g3); color: var(--ink); }
+@media (max-width: 420px) { .lm-row { grid-template-columns: 1fr; gap: 2px; } }
 
 /* ---------- belépés ---------- */
 .login-wrap { min-height: 100vh; display: grid; place-items: center; padding: 20px; }
@@ -391,8 +412,10 @@ svg.chart .grid { stroke: var(--border); stroke-width: 1; }
 .maint-st.active { box-shadow: inset 4px 0 0 var(--g1); }
 .maint-st.scheduled { box-shadow: inset 4px 0 0 #ff9f43; }
 .mt-when { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
-.mt-in { display: flex; gap: 6px; align-items: center; }
-.mt-in .input { flex: 1; min-width: 0; }
+.mt-in { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.mt-in .input { flex: 1 1 150px; min-width: 0; max-width: 100%; }
+.mt-now { justify-self: start; margin-top: 6px; }
+.mt-dur { justify-self: start; width: auto; margin-top: 6px; padding-top: 6px; padding-bottom: 6px; font-size: .8125rem; }
 textarea.dev-ta { min-height: 90px; font-family: inherit; font-size: .9375rem; margin-bottom: 10px; }
 .dev-st { flex: none; font-size: .8125rem; font-weight: 650; color: var(--muted); white-space: nowrap; }
 .dev-st.on { color: var(--g5); }
@@ -615,3 +638,5 @@ details.cls-d > summary { cursor: pointer; font-weight: 600; color: var(--muted)
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+/* Tervező: „Kinek írod fel?” magyarázata */
+label.f .aud-help { font-weight: 400; }

@@ -1,5 +1,38 @@
-import { S as ST, subjName, teacherName, homework, tests } from "../state.js";
-import { esc, linkify, hwText, d0, fmtFull, relDay, subjColor } from "../util.js";
+import { S as ST, subjName, teacherName, homework, tests, profile, sharedLabel } from "../state.js";
+import { esc, linkify, hwText, d0, fmtFull, relDay, subjColor, toast } from "../util.js";
+
+// AI-prompt a házihoz: a feladat szövege + kérés, hogy lépésenként, magyarázva oldja meg (hogy meg is lehessen érteni).
+// Semmi nem megy ki sehova: csak a vágólapra kerül, a diák illeszti be a saját AI-eszközébe.
+function aiPrompt(h) {
+  const cls = profile().cls, year = /^(\d{1,2})\./.exec(cls || "")?.[1];
+  return [
+    `${year ? `${year}. évfolyamos` : "Középiskolás"} diák vagyok, és ${subjName(h.subject)} házi feladatot kaptam (határidő: ${fmtFull(h.due)}).`,
+    "",
+    "A feladat szövege:",
+    '"""',
+    hwText(h.text) || "(nincs szöveg)",
+    '"""',
+    "",
+    "Kérlek, segíts megoldani:",
+    "1. Oldd meg lépésről lépésre, és minden lépésnél magyarázd el röviden, miért úgy csinálod.",
+    "2. Ha a feladat tankönyvre, munkafüzetre vagy oldalszámra hivatkozik, amit nem látsz, kérdezd meg tőlem a pontos feladatot, mielőtt megoldod.",
+    "3. Ha kell, írd le a használt szabályt vagy képletet is.",
+    "4. A végén foglald össze 2-3 mondatban a lényeget, hogy egy hasonló feladatot egyedül is meg tudjak oldani.",
+    "Válaszolj magyarul.",
+  ].join("\n");
+}
+
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch {}
+  // tartalék (pl. nem HTTPS-en): rejtett szövegmező + másolás parancs
+  const ta = Object.assign(document.createElement("textarea"), { value: text });
+  ta.style.cssText = "position:fixed;opacity:0;top:0;left:0";
+  document.body.appendChild(ta); ta.select();
+  let ok = false;
+  try { ok = document.execCommand("copy"); } catch {}
+  ta.remove();
+  return ok;
+}
 
 let tab = "open";
 const key = () => `kp_hw_done_${ST.user?.id}`;
@@ -18,10 +51,16 @@ export function render(root) {
         <span class="dot" style="background:${subjColor(h.subject)}"></span><b class="grow">${esc(subjName(h.subject))}</b>
         <span class="chip ${h.due < today ? "bad" : h.due - today < 864e5 * 1.5 ? "warn" : ""}">${relDay(h.due)}</span></div>
         <div style="margin:10px 0 6px;white-space:pre-wrap">${linkify(hwText(h.text))}</div>
-        <div class="small muted">${h.own ? "saját · " : esc(teacherName(h.teacher)) + " · feladva: " + fmtFull(h.given) + " · "}határidő: ${fmtFull(h.due)}</div></div>`).join("") || `<div class="card empty">Itt nincs semmi 🎉</div>`}</div>
+        <div class="row wrap spread" style="gap:8px"><div class="small muted">${h.shared ? `👥 ${esc(sharedLabel(h.shared))} · ${h.shared.mine ? "te írtad fel" : `felírta: ${esc(h.shared.author || "egy osztálytársad")}`} · ` : h.own ? "saját · " : esc(teacherName(h.teacher)) + " · feladva: " + fmtFull(h.given) + " · "}határidő: ${fmtFull(h.due)}</div>
+          ${ST.site?.aiPromptEnabled === false ? "" : `<button class="btn sm ai-btn" data-ai="${esc(h.id)}" title="Kimásol egy promptot, amit beilleszthetsz egy AI-ba (pl. ChatGPT, Claude, Gemini)">🤖 AI prompt másolása</button>`}</div></div>`).join("") || `<div class="card empty">Itt nincs semmi 🎉</div>`}</div>
       <div class="card"><h3>Közelgő számonkérések</h3>${ts.length ? `<div class="list">${ts.map((t) => `<div class="item"><span class="dot" style="background:${subjColor(t.subject)}"></span>
-        <div class="grow"><b>${esc(subjName(t.subject))}</b><div class="small muted">${esc(t.kind || "számonkérés")}${t.topic ? " · " + esc(t.topic) : ""}</div></div><span class="chip warn">${relDay(t.date)}</span></div>`).join("")}</div>` : `<div class="empty">Nincs bejelentett számonkérés</div>`}</div></div>`;
+        <div class="grow"><b>${esc(subjName(t.subject))}</b><div class="small muted">${esc(t.kind || "számonkérés")}${t.topic ? " · " + esc(t.topic) : ""}${t.shared ? ` · 👥 ${esc(sharedLabel(t.shared))}${t.shared.author && !t.shared.mine ? `, felírta: ${esc(t.shared.author)}` : ""}` : ""}</div></div><span class="chip warn">${relDay(t.date)}</span></div>`).join("")}</div>` : `<div class="empty">Nincs bejelentett számonkérés</div>`}</div></div>`;
   root.querySelectorAll("#tabs button").forEach((b) => (b.onclick = () => { tab = b.dataset.t; render(root); }));
+  root.querySelectorAll("[data-ai]").forEach((b) => (b.onclick = async () => {
+    const h = all.find((x) => String(x.id) === b.dataset.ai);
+    if (!h) return;
+    toast((await copyText(aiPrompt(h))) ? "Prompt kimásolva, illeszd be az AI-ba 🤖" : "Nem sikerült másolni");
+  }));
   root.querySelectorAll(".chk").forEach((c) => (c.onchange = () => {
     const s = doneSet(); c.checked ? s.add(c.dataset.id) : s.delete(c.dataset.id);
     localStorage.setItem(key(), JSON.stringify([...s])); render(root);

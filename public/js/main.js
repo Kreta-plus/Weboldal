@@ -88,8 +88,10 @@ function notices() {
   if (s.maintenanceUpcoming) out.push({ lvl: "warn", ic: "🔧", text: `Karbantartás lesz: ${fmtRange(s.maintenanceFrom, s.maintenanceUntil)}. Ez idő alatt az oldal nem érhető el.` });
   if (s.maintenance && S.user?.admin) out.push({ lvl: "danger", ic: "🔧", text: `Karbantartás folyamatban, a diákok most nem érik el az oldalt${s.maintenanceUntil ? ` (várható vége: ${fmtWhen(s.maintenanceUntil)})` : ""}.` });
   if (s.announcement) out.push({ lvl: s.announcementLevel || "info", ic: { info: "📢", warn: "⚠️", danger: "⛔" }[s.announcementLevel] || "📢", text: s.announcement });
-  // e-mailes belépés: a KRÉTA-token csak annak a böngészőnek a sütijében van, ahol a KRÉTA-ban beléptél
-  if (S.user?.needsLogin) out.push({ lvl: "warn", ic: "🔌", text: "Ezen az eszközön e-mail címmel léptél be, ezért nincs KRÉTA-kapcsolat: a legutóbb letöltött adatokat látod.",
+  // e-mailes belépés KRÉTA-token nélkül: egy KRÉTA-belépés innen el is menti a (jelszóval titkosított) tokent
+  if (S.user?.needsLogin) out.push({ lvl: "warn", ic: "🔌", text: S.user.email
+    ? "Nincs KRÉTA-kapcsolat, a legutóbb letöltött adatokat látod. Lépj be egyszer a KRÉTA-ban: utána az e-mailes belépés is magától betölti a KRÉTA-adataidat, minden eszközön."
+    : "Nincs KRÉTA-kapcsolat: a legutóbb letöltött adatokat látod.",
     action: ["Belépés a KRÉTA-ban", () => { stopAuto(); renderLogin(app, boot, { back: boot }); }] });
   return out;
 }

@@ -4,7 +4,7 @@ import time
 from flask import Blueprint, jsonify, request
 
 from .. import db, discord, monitoring, security, site
-from ..config import ADMIN_EMAILS, DEMO_ENABLED, DEV_CODE, GLITCHTIP_ENV
+from ..config import ADMIN_EMAILS, DEMO_ENABLED, DEV_CODE, DEV_CODE_OFF, GLITCHTIP_ENV
 from ..demo import DEMO_INST
 
 bp = Blueprint("site", __name__, url_prefix="/api/site")
@@ -42,7 +42,7 @@ def admin_get():
         },
         devs=devs,
         system={"env": GLITCHTIP_ENV, "glitchtip": monitoring.enabled, "discordWebhook": discord.enabled(),
-                "devCode": bool(DEV_CODE), "demoAllowed": DEMO_ENABLED},
+                "devCode": bool(DEV_CODE), "devCodeOff": DEV_CODE_OFF, "demoAllowed": DEMO_ENABLED},
     )
 
 

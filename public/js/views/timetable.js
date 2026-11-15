@@ -1,8 +1,10 @@
 import { S as ST, subjName, teacherName, loadWeek, fillTestLessons } from "../state.js";
 import { esc, normLessons, mondayOf, addDays, iso, sameDay, fmtTime, fmtDate, DAYS, subjColor, toast } from "../util.js";
+import { openLesson } from "../lesson.js";
 
 let monday = mondayOf(new Date());
 let gen = 0, timer = null, last = "";
+let shown = []; // a kirajzolt órák, sorrendben: a kattintás data-i alapján ebből nyitja a részleteket
 
 export async function render(root, { refresh } = {}) {
   const my = ++gen;
@@ -14,7 +16,9 @@ export async function render(root, { refresh } = {}) {
   let res;
   try { res = await loadWeek(monday, refresh); } catch (e) { root.querySelector(".tt").outerHTML = `<div class="card empty">${esc(e.message)}</div>`; return; }
   if (my !== gen) return;
-  root.querySelector(".tt").innerHTML = last = days(res);
+  const tt = root.querySelector(".tt");
+  tt.innerHTML = last = days(res);
+  tt.onclick = (e) => { const b = e.target.closest("[data-i]"); if (b) openLesson(shown[+b.dataset.i]); };
   if (res.meta?.stale) toast("Régebbi adatot mutatok, a KRÉTA most nem elérhető");
   schedule(root, my);
 }
@@ -22,15 +26,17 @@ export async function render(root, { refresh } = {}) {
 function days(res) {
   const ls = fillTestLessons(normLessons(res.data), monday);
   const now = new Date();
+  shown = [];
   return [0, 1, 2, 3, 4].map((i) => addDays(monday, i)).map((d, i) => {
     const dl = ls.filter((l) => sameDay(l.start, d));
     return `<div class="day ${sameDay(d, now) ? "today" : ""}"><h4><span>${DAYS[i]}</span><span>${fmtDate(d)}</span></h4>
-      ${dl.map((l) => `<div class="les ${l.off ? "off" : ""} ${l.sub ? "sub" : ""} ${l.start <= now && now < l.end ? "now" : ""}" style="--c:${subjColor(l.subject)}" title="${esc(l.topic)}">
+      ${dl.map((l) => `<button type="button" class="les les-btn ${l.off ? "off" : ""} ${l.sub ? "sub" : ""} ${l.start <= now && now < l.end ? "now" : ""}" style="--c:${subjColor(l.subject)}" data-i="${shown.push(l) - 1}" aria-label="${esc(subjName(l.subject))}, ${fmtTime(l.start)}: részletek">
         <b>${l.nr ? l.nr + ". " : ""}${esc(subjName(l.subject))}</b>
         <span class="t">${fmtTime(l.start)}–${fmtTime(l.end)} · ${esc(l.room || "—")}</span>
-        <span class="t">${esc(teacherName(l.sub || l.teacher))}${l.sub ? " · helyettesítés" : ""}${l.off ? " · elmarad" : ""}</span>
+        <span class="t">${esc(teacherName(l.sub || l.teacher))}${l.sub ? ` · <b class="les-sub">helyettesítés</b>` : ""}${l.off ? " · elmarad" : ""}</span>
+        ${l.topic ? `<span class="t les-topic">${esc(l.topic)}</span>` : ""}
         ${l.fake ? `<span class="chip">teszt óra</span>` : ""}${l.test || l.hw ? `<span class="row" style="gap:4px">${l.test ? `<span class="chip warn">dolgozat</span>` : ""}${l.hw ? `<span class="chip">házi</span>` : ""}</span>` : ""}
-      </div>`).join("") || `<div class="muted small" style="padding:8px">Nincs óra</div>`}</div>`;
+      </button>`).join("") || `<div class="muted small" style="padding:8px">Nincs óra</div>`}</div>`;
   }).join("");
 }
 

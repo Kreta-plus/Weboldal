@@ -15,10 +15,12 @@ DEFAULTS = {
     "maintenanceUntil": None,      # vége: ekkor magától leáll (a kézzel bekapcsoltat is leállítja)
     "demoEnabled": True,           # „Kipróbálom teszt fiókkal” a belépőoldalon
     "feedbackEnabled": True,       # hibabejelentés, ötlet és üzenet küldése
+    "aiPromptEnabled": True,       # „🤖 AI prompt másolása” gomb a házi feladatoknál
+    "testGroupsEnabled": False,    # teszt fiók: osztály, csoport és iskola kézi váltása (a közös házi kipróbálásához)
     "discordInvite": DISCORD_INVITE,
 }
 LEVELS = ("info", "warn", "danger")
-PUBLIC = ("announcement", "announcementLevel", "maintenanceText", "maintenanceFrom", "maintenanceUntil", "demoEnabled", "feedbackEnabled")
+PUBLIC = ("announcement", "announcementLevel", "maintenanceText", "maintenanceFrom", "maintenanceUntil", "demoEnabled", "feedbackEnabled", "aiPromptEnabled", "testGroupsEnabled")
 _INVITE = re.compile(r"https://(discord\.gg|discord\.com/invite)/[\w-]{2,64}")
 
 
@@ -47,6 +49,8 @@ def sanitize(d):
     out["maintenanceUntil"] = _ts(d.get("maintenanceUntil"))
     out["demoEnabled"] = bool(d.get("demoEnabled", True))
     out["feedbackEnabled"] = bool(d.get("feedbackEnabled", True))
+    out["aiPromptEnabled"] = bool(d.get("aiPromptEnabled", True))
+    out["testGroupsEnabled"] = bool(d.get("testGroupsEnabled", False))
     inv = _txt(d.get("discordInvite"), 120)
     out["discordInvite"] = inv if valid_invite(inv) else DEFAULTS["discordInvite"]
     return out

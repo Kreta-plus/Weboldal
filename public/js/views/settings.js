@@ -1,5 +1,5 @@
-import { S as ST, savePrefs, allSubjects, subjName, PALETTES } from "../state.js";
-import { post } from "../api.js";
+import { S as ST, savePrefs, allSubjects, subjName, PALETTES, loadShared } from "../state.js";
+import { post, put } from "../api.js";
 import { esc, toast, iso, fmtFull, fmtTime } from "../util.js";
 import { randomDisclaimer } from "../funny.js";
 import { TRANSITIONS, preview } from "../transition.js";
@@ -131,8 +131,8 @@ export async function render(root) {
 
     ${sec("account", `<h3>Fiók és adatok</h3>
       ${row("E-mailes belépés", (u.email
-        ? `Ezzel is beléphetsz: <b>${esc(u.email)}</b>${u.admin ? ` <span class="chip">🧑‍💻 fejlesztői fiók</span>` : ""}`
-        : "Csatolj egy e-mail címet és egy jelszót, és később KRÉTA nélkül is be tudsz lépni vele. Visszaigazoló levelet nem küldünk.")
+        ? `Ezzel is beléphetsz: <b>${esc(u.email)}</b>${u.admin ? ` <span class="chip">🧑‍💻 fejlesztői fiók</span>` : ""}. A KRÉTA-adataid e-mailes belépéskor is betöltődnek: a KRÉTA-tokent a jelszavaddal titkosítva tároljuk, a szerver a jelszavad nélkül nem tudja kibontani.`
+        : "Csatolj egy e-mail címet és egy jelszót, és később KRÉTA nélkül is be tudsz lépni vele, a KRÉTA-adataid is betöltődnek. Visszaigazoló levelet nem küldünk.")
         + (u.inst === "demo" ? " Teszt fióknál is működik, és így a fiók nem törlődik 7 nap után." : ""),
         `<div class="row wrap">${u.email ? `<button class="btn" id="emedit">Jelszó módosítása</button><button class="btn danger" id="emdel">Leválasztás</button>` : `<button class="btn" id="emedit">E-mail cím csatolása</button>`}</div>
         <form class="em-set" id="emset" hidden>
@@ -143,6 +143,14 @@ export async function render(root) {
           <div class="err" id="emerr" hidden></div>
           <div class="row"><button type="button" class="btn grow" id="emcancel">Mégsem</button><button class="btn primary grow">Mentés</button></div>
         </form>`, true)}
+      ${u.inst === "demo" && ST.shared.membership?.schoolLink ? row("Teszt osztály és csoport", "Csak teszt fióknál: ezzel próbálható ki a közös házi/dolgozat felírás (Tervező). Valódi fióknál az osztály és a csoport a KRÉTA-órarendből jön. Két teszt fiók ugyanazzal az osztállyal vagy csoporttal látja egymás felírásait.",
+        `<form class="grid" id="tgform" style="gap:8px">
+          <input class="input" id="tginst" maxlength="40" placeholder="Iskola KRÉTA-azonosítója (üresen: teszt iskola)" aria-label="Teszt iskola KRÉTA-azonosítója" value="${esc(ST.shared.membership?.inst && ST.shared.membership.inst !== "demo" ? ST.shared.membership.inst : "")}">
+          <div class="small muted">Egy valódi iskola osztályába / csoportjába is beléphetsz: a KRÉTA-cím eleje, pl. klik035046001. A fejlesztői oldalon kapcsolható.</div>
+          <input class="input" id="tgcls" maxlength="40" placeholder="Osztály, pl. 9.A" aria-label="Teszt osztály" value="${esc(ST.shared.membership?.cls || "")}">
+          <input class="input" id="tggrp" maxlength="250" placeholder="Csoportok vesszővel, pl. 9.A angol 1, 9.A matek emelt" aria-label="Teszt csoportok" value="${esc((ST.shared.membership?.groups || []).join(", "))}">
+          <div class="row wrap"><button class="btn primary">Mentés</button><span class="small muted">${ST.shared.membership?.manual ? "kézzel megadva" : "most a generált órarendből"}</span></div>
+        </form>`, true) : ""}
       ${row("Beállítások mentése", "Lementheted fájlba, és másik eszközön visszatöltheted.", `<div class="row wrap"><button class="btn" id="exp">Exportálás</button><label class="btn" style="cursor:pointer">Importálás<input type="file" id="imp" accept="application/json" hidden></label></div>`)}
       ${row("Ez az eszköz", `A belépésed${u.inst === "demo" ? "" : u.needsLogin ? " (e-mail címmel, KRÉTA-kapcsolat nélkül)" : " és a KRÉTA tokenje"} titkosítva ennek a böngészőnek a sütijében van, a szerveren nem tároljuk. A jelszavadat sehol nem tároljuk. A lejáratot belépéskor választod.`,
         `<div class="small">Belépve: <b>${ss.created ? when(ss.created) : "–"}</b><br>Lejár: <b>${ss.expires ? when(ss.expires) : "soha"}</b></div>`)}
@@ -247,6 +255,16 @@ export async function render(root) {
   };
   // e-mailes belépés: csatolás / jelszócsere / leválasztás
   const emset = root.querySelector("#emset"), emcode = root.querySelector("#emcode");
+  root.querySelector("#tgform")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const groups = root.querySelector("#tggrp").value.split(",").map((x) => x.trim()).filter(Boolean);
+    try {
+      await put("/api/shared/membership", { cls: root.querySelector("#tgcls").value, groups, inst: root.querySelector("#tginst")?.value.trim() || "" });
+      await loadShared();
+      toast("Teszt osztály és csoport elmentve");
+      render(root);
+    } catch (ex) { toast(ex.message); }
+  });
   root.querySelector("#emedit").onclick = () => { emset.hidden = false; root.querySelector(u.email ? "#empw1" : "#emaddr").focus(); };
   root.querySelector("#emcancel").onclick = () => { emset.hidden = true; };
   root.querySelector("#emdel")?.addEventListener("click", async () => {
@@ -273,7 +291,7 @@ export async function render(root) {
         setTimeout(() => { location.hash = "dev"; location.reload(); }, 900);
         return;
       }
-      toast(hadEmail ? "Jelszó módosítva" : "E-mail cím csatolva, mostantól ezzel is beléphetsz");
+      toast((hadEmail ? "Jelszó módosítva" : "E-mail cím csatolva, mostantól ezzel is beléphetsz") + (r.kreta ? "" : ". A KRÉTA-adatokhoz egyszer lépj be a KRÉTA-val is."));
       render(root);
     } catch (ex) {
       if (ex.code === "devcode") { emcode.hidden = false; emcode.focus(); }

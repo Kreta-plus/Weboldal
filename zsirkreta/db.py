@@ -22,7 +22,9 @@ CREATE TABLE IF NOT EXISTS users (
     pw_hash     TEXT,                      -- az e-mailes belépés jelszava (scrypt)
     admin       INTEGER DEFAULT 0,         -- fejlesztő: fejlesztői címet a fejlesztői kóddal csatolt
     gen         INTEGER NOT NULL DEFAULT 0, -- „kilépés mindenhonnan” számláló: a régebbi sütik érvénytelenek
-    last_seen   REAL                       -- utolsó aktivitás (a fejlesztői statisztikához)
+    last_seen   REAL,                      -- utolsó aktivitás (a fejlesztői statisztikához)
+    rt_wrap     TEXT,                      -- e-mailes belépéshez: a KRÉTA megújító token az e-mailes JELSZÓBÓL
+    wrap_salt   TEXT                       --   származtatott kulccsal titkosítva; a szerver jelszó nélkül nem tudja kibontani
 );
 CREATE TABLE IF NOT EXISTS cache (
     user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -46,6 +48,21 @@ CREATE TABLE IF NOT EXISTS site (
     body    TEXT NOT NULL,
     updated REAL NOT NULL
 );
+-- közösen felírt házik és dolgozatok: iskolán belül egy osztálynak vagy csoportnak (a „csak magamnak” a prefs-ben marad)
+CREATE TABLE IF NOT EXISTS shared_items (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    inst        TEXT NOT NULL,             -- iskola (KRÉTA-intézménykód; teszt fióknál „demo”)
+    scope       TEXT NOT NULL,             -- class | group
+    target      TEXT NOT NULL,             -- az osztály vagy a csoport neve, ahogy a KRÉTA-órarendben szerepel
+    kind        TEXT NOT NULL,             -- hw | test
+    subject     TEXT NOT NULL,
+    date        TEXT NOT NULL,             -- határidő / a dolgozat napja (ÉÉÉÉ-HH-NN)
+    text        TEXT NOT NULL,             -- a feladat, vagy a dolgozat témaköre
+    author_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    author_name TEXT,
+    created     REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_shared ON shared_items(inst, target, date);
 """
 
 # régebbi adatbázisokba utólag felvett oszlopok: (tábla, oszlop, típus)
@@ -55,6 +72,9 @@ MIGRATIONS = [
     ("users", "admin", "INTEGER DEFAULT 0"),
     ("users", "gen", "INTEGER NOT NULL DEFAULT 0"),
     ("users", "last_seen", "REAL"),
+    ("users", "rt_wrap", "TEXT"),
+    ("users", "wrap_salt", "TEXT"),
+    ("users", "test_groups", "TEXT"),          # teszt fiók: kézzel megadott osztály és csoportok (JSON)
 ]
 # a belépési adatok régen az adatbázisban voltak, most a sütiben: ezeket egyszer, véglegesen töröljük
 LEGACY_COLUMNS = ("refresh_enc", "access_enc", "access_exp", "needs_login")

@@ -4,7 +4,7 @@
     python run.py      # http://localhost:3000
 
 Szerkezet: `zsirkreta/` (config, db, security, kreta kliens, blueprints: auth / data / prefs), `public/` (css, js modulok, nézetek).
-Adatok: `data/` (SQLite + titkosítókulcs). A belépés (a KRÉTA-tokenekkel együtt) nem az adatbázisban van, hanem titkosítva és aláírva a böngésző `kp_sid` sütijében; a lejáratot belépéskor a felhasználó választja (1 óra … soha). A `data/secret.key` titkosítja és írja alá ezeket a sütiket: ne oszd meg. Ha kiszivárgott, töröld (újraindításkor új készül), ezzel mindenki kilép.
+Adatok: `data/` (SQLite + titkosítókulcs). A belépés (a KRÉTA-tokenekkel együtt) nem az adatbázisban van, hanem titkosítva és aláírva a böngésző `kp_sid` sütijében; a lejáratot belépéskor a felhasználó választja (1 óra … soha). E-mailes belépésnél a KRÉTA megújító token a felhasználó e-mailes jelszavából (scrypt, külön só) származtatott kulccsal titkosítva a `users.rt_wrap` mezőbe kerül: a szerver jelszó nélkül nem tudja kibontani; e-mailes belépéskor a jelszóból előáll a kulcs, a token a sütibe kerül, a kulcs is (`wk`), így token-megújításkor az adatbázisban lévő példány is frissül. Leválasztáskor és jelszócserekor a régi példány törlődik. A `data/secret.key` titkosítja és írja alá ezeket a sütiket: ne oszd meg. Ha kiszivárgott, töröld (újraindításkor új készül), ezzel mindenki kilép.
 Belépni csak az Általános Szerződési Feltételek (`public/aszf.html`, címe `/aszf`) elfogadásával lehet; a szerver is ellenőrzi.
 Ha a belépés nem megy: a terminál [KRÉTA] sorai mutatják a hibás lépést; a KRETA_CLIENT_ID, KRETA_REDIRECT_URI stb. környezeti változókkal javítható.
 

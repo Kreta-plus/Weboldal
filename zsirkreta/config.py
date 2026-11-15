@@ -104,3 +104,8 @@ DISCORD_WEBHOOK = os.environ.get("KP_DISCORD_WEBHOOK", "")
 # különben bárki a saját fiókjához köthetné őket. A kód titok: a .env fájlban vagy környezeti változóban a helye.
 ADMIN_EMAILS = {e.strip().lower() for e in os.environ.get("KP_ADMIN_EMAILS", "d-kreta@kopaszhegy.hu,b-kreta@kopaszhegy.hu").split(",") if e.strip()}
 DEV_CODE = os.environ.get("KP_DEV_CODE", "")
+# Csak helyi teszteléshez: KP_DEV_CODE_OFF=1 esetén a fejlesztői címhez nem kell kód (bárki fejlesztő lehet!).
+# Élesben soha; a docker-compose ezt a változót nem adja át a konténernek.
+DEV_CODE_OFF = os.environ.get("KP_DEV_CODE_OFF") == "1"
+if DEV_CODE_OFF:
+    print("[FIGYELEM] KP_DEV_CODE_OFF=1: a fejlesztői címhez nem kell kód. Csak helyi teszteléshez!")

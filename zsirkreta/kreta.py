@@ -253,6 +253,10 @@ def _refresh(sess):
     _renewed[hashlib.sha256(rt.encode()).hexdigest()] = t
     sess.update(t)
     security.session_changed()
+    if t.get("rt") and t["rt"] != rt and sess.get("wk"):  # e-mailes belépéshez: a titkosított példány is az új token legyen
+        row = db.one("SELECT wrap_salt FROM users WHERE id=?", (sess["u"],))
+        if row and row["wrap_salt"]:
+            security.store_wrapped(sess["u"], t["rt"], sess["wk"], row["wrap_salt"])
     return t["at"]
 
 

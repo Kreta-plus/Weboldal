@@ -35,7 +35,8 @@ def _timetable(uid):
 
 
 def tanulo(uid):
-    return {"Nev": "Teszt Elek", "IntezmenyNev": "Teszt Gimnázium", "Oktatasi_Azonosito": "00000000000"}
+    return {"Nev": "Teszt Elek", "IntezmenyNev": "Teszt Gimnázium", "Intezmeny": {"TeljesNev": "Teszt Gimnázium és Technikum", "RovidNev": "Teszt Gimn."},
+            "Oktatasi_Azonosito": "00000000000"}
 
 
 def jegyek(uid):
@@ -67,11 +68,22 @@ def orarend(uid, params):
             for n, (subj, teacher) in enumerate(tt[day.weekday()]):
                 start = day.replace(hour=8) + dt.timedelta(minutes=55 * n)
                 off, sub = r.random() < 0.04, r.random() < 0.05
+                past = start < dt.datetime.now()
+                # a mezőnevek a valódi KRÉTA-válaszéi (pl. HelyettesTanarNeve, Allapot/TanuloJelenlet szótárelemek)
+                state = ("3,Elmaradt", "Elmaradt", "Elmaradt") if off else ("1,Naplozott", "Naplozott", "Naplózott") if past else ("2,Nem_naplozott", "Nem_naplozott", "Nem naplózott")
+                absent = past and not off and r.random() < 0.04
                 out.append({
                     "Uid": f"l{day:%Y%m%d}{n}", "KezdetIdopont": _iso(start), "VegIdopont": _iso(start + dt.timedelta(minutes=45)),
-                    "Tantargy": {"Nev": subj}, "Nev": subj, "TanarNeve": teacher, "HelyettesitoTanarNeve": "Teszt Helyettes" if sub else "",
+                    "Tantargy": {"Nev": subj}, "Nev": subj, "TanarNeve": teacher, "HelyettesTanarNeve": "Teszt Helyettes" if sub else None,
                     "TeremNeve": f"{r.choice('ABC')}{10 + sum(map(ord, subj)) % 20}", "Oraszam": n + 1,
-                    "Allapot": {"Nev": "Elmaradt" if off else "Megtartott"}, "Tema": "",
+                    # a nyelvórák csoportbontásban, mint a valódi KRÉTA-ban (pl. „11.I szakmai 1”)
+                    "OsztalyCsoport": {"Uid": "2", "Nev": "10.B nyelv 1"} if "nyelv" in subj.lower() and "irodalom" not in subj.lower() else {"Uid": "1", "Nev": "10.B"},
+                    "Allapot": {"Uid": state[0], "Nev": state[1], "Leiras": state[2]},
+                    "Tipus": {"Uid": "2,TanitasiOra", "Nev": "TanitasiOra", "Leiras": "Tanítási óra"},
+                    "TanuloJelenlet": ({"Uid": "1500,Hianyzas", "Nev": "Hianyzas", "Leiras": "A tanuló hiányzott a tanóráról"} if absent
+                                       else {"Uid": "1498,Jelenlet", "Nev": "Jelenlet", "Leiras": "A tanuló részt vett a tanórán"} if past and not off else None),
+                    "OraEvesSorszama": 40 + (day - _today()).days // 7 + n,
+                    "Tema": ("Ismétlés, gyakorlás" if past and not off else ""),
                     "HaziFeladatUid": "x" if r.random() < 0.15 else None, "BejelentettSzamonkeresUid": "x" if r.random() < 0.06 else None,
                 })
         day += dt.timedelta(days=1)
